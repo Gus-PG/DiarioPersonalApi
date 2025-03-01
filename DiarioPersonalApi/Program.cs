@@ -1,4 +1,5 @@
 using DiarioPersonalApi.Data;
+using DiarioPersonalApi.Models;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,21 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<DiarioDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
+
+// Añadir usuario de prueba
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DiarioDbContext>();
+    if (!db.Usuarios.Any())
+    {
+        db.Usuarios.Add(new Usuario
+        {
+            NombreUsuario = "test",
+            ContraseñaHash = "password" // Temporal, sin hash por ahora
+        });
+        db.SaveChanges();
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
