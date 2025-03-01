@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DiarioPersonalApi.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace DiarioPersonalApi.Data
 {
@@ -7,5 +8,30 @@ namespace DiarioPersonalApi.Data
         public DiarioDbContext(DbContextOptions<DiarioDbContext> options) : base(options) { }
 
         public DbSet<Entrada> Entradas { get; set; }
+        public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<Etiqueta> Etiquetas { get; set; }
+        public DbSet<EntradaEtiqueta> EntradasEtiquetas { get; set; }
+
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Entrada>()
+                .HasOne(e => e.Usuario)
+                .WithMany(u => u.Entradas)
+                .HasForeignKey(e => e.UserId);
+
+            modelBuilder.Entity<EntradaEtiqueta>()
+                           .HasKey(e => new { e.EntradaId, e.EtiquetaId });
+
+            modelBuilder.Entity<EntradaEtiqueta>()
+                .HasOne(e => e.Entrada)
+                .WithMany(e => e.EntradasEtiquetas)
+                .HasForeignKey(e => e.EntradaId);
+
+            modelBuilder.Entity<EntradaEtiqueta>()
+                .HasOne(e => e.Etiqueta)
+                .WithMany(e => e.EntradasEtiquetas)
+                .HasForeignKey(e => e.EtiquetaId);
+        }
     }
 }
