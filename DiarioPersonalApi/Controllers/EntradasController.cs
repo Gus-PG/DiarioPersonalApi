@@ -49,6 +49,22 @@ namespace DiarioPersonalApi.Controllers
             return entrada;
         }
 
+        // GET: api/entradas/etiquetas/{tag}
+        [HttpGet("etiqueta/{tag}")]
+        public async Task<ActionResult<IEnumerable<Entrada>>> GetEntradasPorEtiqueta(string tag)
+        {
+            var entradas = await _db.Entradas
+                .Include(e => e.Usuario)
+                .Include(e => e.EntradasEtiquetas)
+                .ThenInclude(ee => ee.Etiqueta)
+                .Where(e => e.EntradasEtiquetas.Any(ee => ee.Etiqueta.Nombre == tag))
+                .ToListAsync();
+            return entradas;
+        }
+
+
+
+
         // POST: api/entradas
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
