@@ -24,7 +24,7 @@ namespace DiarioPersonalApi.Controllers
 
         // GET: api/entradas/usuario/{userId}
         [HttpGet("usuario/{userId}")]
-        public async Task<ActionResult<IEnumerable<Entrada>>> GetEntradasUsuario(int userId)
+        public async Task<ActionResult<IEnumerable<EntradaResponseDTO>>> GetEntradasUsuario(int userId)
         {
              var entradas = await _db.Entradas
                 .Where(e => e.UserId == userId)
@@ -33,20 +33,41 @@ namespace DiarioPersonalApi.Controllers
                 .ThenInclude(ee => ee.Etiqueta)
                 .ToListAsync();
 
-            return Ok(entradas);
+            var response = entradas.Select(entrada => new EntradaResponseDTO
+            {
+                Id = entrada.Id,
+                UserId = entrada.UserId,
+                Fecha = entrada.Fecha,
+                Contenido = entrada.Contenido,
+                NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
+                Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new List<string>()
+            });
+
+            return Ok(response);
         }
 
         // GET: api/entradas/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<Entrada>> GetEntradaUsuario(int id)
+        public async Task<ActionResult<EntradaResponseDTO>> GetEntradaUsuario(int id)
         {
             var entrada = await _db.Entradas
                 .Include(e => e.Usuario)
                 .Include(e => e.EntradasEtiquetas)
                 .ThenInclude (ee => ee.Etiqueta)
                 .FirstOrDefaultAsync(e => e.Id == id);
-            if (entrada == null) return NotFound(); 
-            return Ok(entrada);
+            if (entrada == null) return NotFound();
+
+            var response = new EntradaResponseDTO
+            {
+                Id = entrada.Id,
+                UserId = entrada.UserId,
+                Fecha = entrada.Fecha,
+                Contenido = entrada.Contenido,
+                NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
+                Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new List<string>()
+            };
+
+            return Ok(response);
         }
 
         // GET: api/entradas/etiquetas/{tag}
@@ -68,7 +89,7 @@ namespace DiarioPersonalApi.Controllers
         // POST: api/entradas
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Entrada>> PostEntradaUsuario([FromBody] EntradaRequestDTO entradaDTO)
+        public async Task<ActionResult<EntradaResponseDTO>> PostEntradaUsuario([FromBody] EntradaRequestDTO entradaDTO)
         {
             // Validar que el usuario exista.
             var usuario = await _db.Usuarios.FindAsync(entradaDTO.UserId);
@@ -119,18 +140,25 @@ namespace DiarioPersonalApi.Controllers
         // PUT: api/entradas/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutEntrada(int id, Entrada entrada)
+        public async Task<IActionResult> PutEntrada(int id, [FromBody] EntradaRequestDTO entradaDTO)
         {
-            if (id != entrada.Id) return BadRequest("ID no coincide"); 
-            var existingEntrada = await _db.Entradas.FindAsync(id);
-            if (existingEntrada == null) return NotFound();
-            if (existingEntrada.UserId != entrada.UserId) return Forbid("No autorizado");
+            //if (id != entradaDTO.Id) return BadRequest("ID no coincide"); 
+            //var existingEntrada = await _db.Entradas.FindAsync(id);
+            //if (existingEntrada == null) return NotFound();
+            //if (existingEntrada.UserId != entrada.UserId) return Forbid("No autorizado");
 
-            _db.Entry(existingEntrada).CurrentValues.SetValues(entrada);
+            var entrada = await _db.Entradas
+                .Include(e => e.EntradasEtiquetas)
+                .FirstOrDefaultAsync(e => e.Id == id);
+            if (entrada == null) return NotFound();
+            if (entrada.UserId != entradaDTO.UserId) return Forbid("No autorizado");
 
-            // Actualizar hashtags (borrar viejos, añadir nuevos)
-            var oldTags = _db.EntradasEtiquetas.Where(ee => ee.EntradaId == id);
-            _db.EntradasEtiquetas.RemoveRange(oldTags);
+            entrada.Fecha = entradaDTO.Fecha;
+            entrada.Contenido = entradaDTO.Contenido;
+
+
+            // Actualizar hashtags
+            _db.EntradasEtiquetas.RemoveRange(entrada.EntradasEtiquetas ?? new List<EntradaEtiqueta>());
             var hashtags = Regex.Matches(entrada.Contenido, @"#\w+")
                 .Select(m => m.Value.Substring(1))
                 .Distinct();
@@ -141,13 +169,36 @@ namespace DiarioPersonalApi.Controllers
                 if (etiqueta.Id == 0) _db.Etiquetas.Add(etiqueta);
                 _db.EntradasEtiquetas.Add(new EntradaEtiqueta
                 {
-                    EntradaId = id,
+                    EntradaId = entrada.Id,
                     Etiqueta = etiqueta
                 });
             }
 
             await _db.SaveChangesAsync();
             return NoContent();
+
+            //_db.Entry(existingEntrada).CurrentValues.SetValues(entrada);
+
+            // Actualizar hashtags (borrar viejos, añadir nuevos)
+            //var oldTags = _db.EntradasEtiquetas.Where(ee => ee.EntradaId == id);
+            //_db.EntradasEtiquetas.RemoveRange(oldTags);
+            //var hashtags = Regex.Matches(entrada.Contenido, @"#\w+")
+            //    .Select(m => m.Value.Substring(1))
+            //    .Distinct();
+            //foreach (var tag in hashtags)
+            //{
+            //    var etiqueta = await _db.Etiquetas.FirstOrDefaultAsync(e => e.Nombre == tag)
+            //        ?? new Etiqueta { Nombre = tag };
+            //    if (etiqueta.Id == 0) _db.Etiquetas.Add(etiqueta);
+            //    _db.EntradasEtiquetas.Add(new EntradaEtiqueta
+            //    {
+            //        EntradaId = id,
+            //        Etiqueta = etiqueta
+            //    });
+            //}
+
+            //await _db.SaveChangesAsync();
+            //return NoContent();
         }
 
 
@@ -161,7 +212,6 @@ namespace DiarioPersonalApi.Controllers
 
             _db.Entradas.Remove(entrada);
             await _db.SaveChangesAsync();
-
             return NoContent();
         }
 
