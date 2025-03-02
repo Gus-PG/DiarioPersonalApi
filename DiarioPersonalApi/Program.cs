@@ -17,7 +17,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<DiarioDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configurar JWT
-var key = Encoding.ASCII.GetBytes("mi_clave_secreta_super_segura_123456789"); // Cambia esto en producción
+var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]); // Cambia esto en producción
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

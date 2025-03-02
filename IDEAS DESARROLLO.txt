@@ -2,6 +2,7 @@ DESARROLLO API DIARIO:
 
 ->Entradas de un mismo usuario, las alamcena nuevamente o primero mira que no existan (en mayúsculas) ya.
 ->Opción de almacenarlas en Mayúsculas?
+--> MODIFICAR CLAVE JWT LARGA EN APPSETTINGS.JSON
 
 
 

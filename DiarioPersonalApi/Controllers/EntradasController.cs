@@ -8,11 +8,13 @@ using Microsoft.EntityFrameworkCore;
 using DiarioPersonalApi.Data;
 using DiarioPersonalApi.Models;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DiarioPersonalApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize] // Requiere token para todos los métodos
     public class EntradasController : ControllerBase
     {
         private readonly DiarioDbContext _db;
@@ -92,12 +94,15 @@ namespace DiarioPersonalApi.Controllers
         public async Task<ActionResult<EntradaResponseDTO>> PostEntradaUsuario([FromBody] EntradaRequestDTO entradaDTO)
         {
             // Validar que el usuario exista.
-            var usuario = await _db.Usuarios.FindAsync(entradaDTO.UserId);
-            if (usuario == null) return BadRequest("Usuario no encontrado");
+            //var usuario = await _db.Usuarios.FindAsync(entradaDTO.UserId);
+            //if (usuario == null) return BadRequest("Usuario no encontrado");
+            
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (userId == 0) return Unauthorized();
 
             var entrada = new Entrada
             {
-                UserId = entradaDTO.UserId,
+                UserId = userId,    // Del Token, no del DTO.
                 Fecha = entradaDTO.Fecha,
                 Contenido = entradaDTO.Contenido
             };
@@ -123,13 +128,14 @@ namespace DiarioPersonalApi.Controllers
 
             await _db.SaveChangesAsync();
 
+            var usuario = await _db.Usuarios.FindAsync(userId); 
             var response = new EntradaResponseDTO
             {
                 Id = entrada.Id,
                 UserId = entrada.UserId,
                 Fecha = entrada.Fecha,
                 Contenido = entrada.Contenido,
-                NombreUsuario = usuario.NombreUsuario,
+                NombreUsuario = usuario?.NombreUsuario ?? "",
                 Etiquetas = hashtags.ToList()
             };
 

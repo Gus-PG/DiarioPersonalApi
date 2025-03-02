@@ -39,7 +39,7 @@ namespace DiarioPersonalApi.Controllers
             return CreatedAtAction(nameof(Register), new { id = usuario.Id }, usuario);
         }
 
-
+        [HttpPost("login")]
         public async Task<ActionResult<string>> Login([FromBody] LoginRequestDTO request)
         {
             var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuario == request.NombreUsuario);
