@@ -41,6 +41,7 @@ namespace DiarioPersonalApi.Controllers
             return CreatedAtAction(nameof(Register), new { id = usuario.Id }, usuario);
         }
 
+
         [HttpPost("login")]
         public async Task<ActionResult<string>> Login([FromBody] LoginRequestDTO request)
         {
@@ -55,7 +56,8 @@ namespace DiarioPersonalApi.Controllers
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-                    new Claim(ClaimTypes.Name, usuario.NombreUsuario)
+                    new Claim(ClaimTypes.Name, usuario.NombreUsuario),
+                    new Claim(ClaimTypes.Role, usuario.NombreUsuario == "user2" ? "Admin" : "User") // Temporal OJO*****************************
                 }),
                 Expires = DateTime.UtcNow.AddHours(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)

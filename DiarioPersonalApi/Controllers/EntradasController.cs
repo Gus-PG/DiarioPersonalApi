@@ -77,13 +77,27 @@ namespace DiarioPersonalApi.Controllers
         [HttpGet("etiqueta/{tag}")]
         public async Task<ActionResult<IEnumerable<Entrada>>> GetEntradasPorEtiqueta(string tag)
         {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (userId == 0) return Unauthorized();
+
             var entradas = await _db.Entradas
+                .Where(e => e.UserId == userId && e.EntradasEtiquetas.Any(ee => ee.Etiqueta.Nombre == tag))
                 .Include(e => e.Usuario)
                 .Include(e => e.EntradasEtiquetas)
-                .ThenInclude(ee => ee.Etiqueta)
-                .Where(e => e.EntradasEtiquetas.Any(ee => ee.Etiqueta.Nombre == tag))
+                .ThenInclude(ee => ee.Etiqueta)                
                 .ToListAsync();
-            return Ok(entradas);
+
+            var response = entradas.Select(entrada => new EntradaResponseDTO
+            {
+                Id = entrada.Id,
+                UserId = entrada.UserId,
+                Fecha = entrada.Fecha,
+                Contenido = entrada.Contenido,
+                NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
+                Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new List<string>()
+            });
+
+            return Ok(response);
         }
 
 
@@ -183,29 +197,6 @@ namespace DiarioPersonalApi.Controllers
 
             await _db.SaveChangesAsync();
             return NoContent();
-
-            //_db.Entry(existingEntrada).CurrentValues.SetValues(entrada);
-
-            // Actualizar hashtags (borrar viejos, añadir nuevos)
-            //var oldTags = _db.EntradasEtiquetas.Where(ee => ee.EntradaId == id);
-            //_db.EntradasEtiquetas.RemoveRange(oldTags);
-            //var hashtags = Regex.Matches(entrada.Contenido, @"#\w+")
-            //    .Select(m => m.Value.Substring(1))
-            //    .Distinct();
-            //foreach (var tag in hashtags)
-            //{
-            //    var etiqueta = await _db.Etiquetas.FirstOrDefaultAsync(e => e.Nombre == tag)
-            //        ?? new Etiqueta { Nombre = tag };
-            //    if (etiqueta.Id == 0) _db.Etiquetas.Add(etiqueta);
-            //    _db.EntradasEtiquetas.Add(new EntradaEtiqueta
-            //    {
-            //        EntradaId = id,
-            //        Etiqueta = etiqueta
-            //    });
-            //}
-
-            //await _db.SaveChangesAsync();
-            //return NoContent();
         }
 
 
@@ -221,6 +212,21 @@ namespace DiarioPersonalApi.Controllers
             await _db.SaveChangesAsync();
             return NoContent();
         }
+
+        
+        // DELETE: api/entradas/admin/{id}
+        [HttpDelete("admin/{id}")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> DeleteEntradaAdmin(int id)
+        {
+            var entrada = await _db.Entradas.FindAsync(id);
+            if (entrada == null) return NotFound();
+
+            _db.Entradas.Remove(entrada);
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+
 
         private bool EntradaExists(int idEntrada)
         {
