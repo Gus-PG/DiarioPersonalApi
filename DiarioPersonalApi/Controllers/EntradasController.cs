@@ -9,6 +9,7 @@ using DiarioPersonalApi.Data;
 using DiarioPersonalApi.Models;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace DiarioPersonalApi.Controllers
 {

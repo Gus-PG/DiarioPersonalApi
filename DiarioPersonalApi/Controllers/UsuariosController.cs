@@ -16,10 +16,12 @@ namespace DiarioPersonalApi.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly DiarioDbContext _db;
+        private readonly IConfiguration _config;
 
-        public UsuariosController(DiarioDbContext db)
+        public UsuariosController(DiarioDbContext db, IConfiguration config)
         {
             _db = db;
+            _config = config;
         }
 
         // POST: api/usuarios/register
@@ -47,7 +49,7 @@ namespace DiarioPersonalApi.Controllers
                 return Unauthorized("Credenciales inválidas");
 
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("mi_clave_secreta_super_segura_123456789"); // Igual que en Program.cs
+            var key = Encoding.ASCII.GetBytes(_config["Jwt:Key"]); 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
