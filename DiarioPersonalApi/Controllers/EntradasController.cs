@@ -33,7 +33,7 @@ namespace DiarioPersonalApi.Controllers
                 .ThenInclude(ee => ee.Etiqueta)
                 .ToListAsync();
 
-            return entradas;
+            return Ok(entradas);
         }
 
         // GET: api/entradas/{id}
@@ -46,7 +46,7 @@ namespace DiarioPersonalApi.Controllers
                 .ThenInclude (ee => ee.Etiqueta)
                 .FirstOrDefaultAsync(e => e.Id == id);
             if (entrada == null) return NotFound(); 
-            return entrada;
+            return Ok(entrada);
         }
 
         // GET: api/entradas/etiquetas/{tag}
@@ -59,7 +59,7 @@ namespace DiarioPersonalApi.Controllers
                 .ThenInclude(ee => ee.Etiqueta)
                 .Where(e => e.EntradasEtiquetas.Any(ee => ee.Etiqueta.Nombre == tag))
                 .ToListAsync();
-            return entradas;
+            return Ok(entradas);
         }
 
 
