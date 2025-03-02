@@ -101,7 +101,18 @@ namespace DiarioPersonalApi.Controllers
             }
 
             await _db.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetEntradaUsuario), new { id = entrada.Id }, entrada);
+
+            var response = new EntradaResponseDTO
+            {
+                Id = entrada.Id,
+                UserId = entrada.UserId,
+                Fecha = entrada.Fecha,
+                Contenido = entrada.Contenido,
+                NombreUsuario = usuario.NombreUsuario,
+                Etiquetas = hashtags.ToList()
+            };
+
+            return CreatedAtAction(nameof(GetEntradaUsuario), new { id = entrada.Id }, response);
         }
 
 
