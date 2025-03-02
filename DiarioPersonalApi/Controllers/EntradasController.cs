@@ -68,11 +68,18 @@ namespace DiarioPersonalApi.Controllers
         // POST: api/entradas
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Entrada>> PostEntradaUsuario(Entrada entrada)
+        public async Task<ActionResult<Entrada>> PostEntradaUsuario([FromBody] EntradaRequestDTO entradaDTO)
         {
             // Validar que el usuario exista.
-            var usuario = await _db.Usuarios.FindAsync(entrada.UserId);
+            var usuario = await _db.Usuarios.FindAsync(entradaDTO.UserId);
             if (usuario == null) return BadRequest("Usuario no encontrado");
+
+            var entrada = new Entrada
+            {
+                UserId = entradaDTO.UserId,
+                Fecha = entradaDTO.Fecha,
+                Contenido = entradaDTO.Contenido
+            };
 
             // La fecha viene del front, no lo asignamos aquí.
             _db.Entradas.Add(entrada);
