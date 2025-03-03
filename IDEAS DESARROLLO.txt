@@ -3,6 +3,13 @@ DESARROLLO API DIARIO:
 ->Entradas de un mismo usuario, las alamcena nuevamente o primero mira que no existan (en mayúsculas) ya.
 ->Opción de almacenarlas en Mayúsculas?
 --> MODIFICAR CLAVE JWT LARGA EN APPSETTINGS.JSON
+--> USUARIOS CONTROLES QUITAR USER2 COMO ADMIN (MODIFICAR ESA LÍNEA)
+
+
+
+
+--> TEsteo:
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIyIiwidW5pcXVlX25hbWUiOiJ1c2VyMiIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc0MDk1MzA0NSwiZXhwIjoxNzQwOTU2NjQ1LCJpYXQiOjE3NDA5NTMwNDV9.y47O6kzXUo1SINk0_n7xMaPsp7vX57qUJTHvN4Sq61k
 
 
 

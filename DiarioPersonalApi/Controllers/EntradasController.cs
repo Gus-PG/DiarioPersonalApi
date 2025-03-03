@@ -25,12 +25,70 @@ namespace DiarioPersonalApi.Controllers
             _db = db;
         }
 
+
+        #region " USUARIOS. "
+
         // GET: api/entradas/usuario/{userId}
         [HttpGet("usuario/{userId}")]
         public async Task<ActionResult<IEnumerable<EntradaResponseDTO>>> GetEntradasUsuario(int userId)
         {
-             var entradas = await _db.Entradas
-                .Where(e => e.UserId == userId)
+            var entradas = await _db.Entradas
+               .Where(e => e.UserId == userId)
+               .Include(e => e.Usuario)
+               .Include(e => e.EntradasEtiquetas)
+               .ThenInclude(ee => ee.Etiqueta)
+               .ToListAsync();
+
+            var response = entradas.Select(entrada => new EntradaResponseDTO
+            {
+                Id = entrada.Id,
+                UserId = entrada.UserId,
+                Fecha = entrada.Fecha,
+                Contenido = entrada.Contenido,
+                NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
+                Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new List<string>()
+            });
+
+            return Ok(response);
+        }
+
+
+
+        // GET: api/entradas/{id}
+        [HttpGet("{id}")]
+        public async Task<ActionResult<EntradaResponseDTO>> GetEntradaUsuario(int id)
+        {
+            var entrada = await _db.Entradas
+                .Include(e => e.Usuario)
+                .Include(e => e.EntradasEtiquetas)
+                .ThenInclude(ee => ee.Etiqueta)
+                .FirstOrDefaultAsync(e => e.Id == id);
+            if (entrada == null) return NotFound();
+
+            var response = new EntradaResponseDTO
+            {
+                Id = entrada.Id,
+                UserId = entrada.UserId,
+                Fecha = entrada.Fecha,
+                Contenido = entrada.Contenido,
+                NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
+                Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new List<string>()
+            };
+
+            return Ok(response);
+        }
+
+
+
+        // GET: api/entradas/etiquetas/{tag}
+        [HttpGet("etiqueta/{tag}")]
+        public async Task<ActionResult<IEnumerable<Entrada>>> GetEntradasPorEtiqueta(string tag)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (userId == 0) return Unauthorized();
+
+            var entradas = await _db.Entradas
+                .Where(e => e.UserId == userId && e.EntradasEtiquetas.Any(ee => ee.Etiqueta.Nombre == tag))
                 .Include(e => e.Usuario)
                 .Include(e => e.EntradasEtiquetas)
                 .ThenInclude(ee => ee.Etiqueta)
@@ -49,58 +107,6 @@ namespace DiarioPersonalApi.Controllers
             return Ok(response);
         }
 
-        // GET: api/entradas/{id}
-        [HttpGet("{id}")]
-        public async Task<ActionResult<EntradaResponseDTO>> GetEntradaUsuario(int id)
-        {
-            var entrada = await _db.Entradas
-                .Include(e => e.Usuario)
-                .Include(e => e.EntradasEtiquetas)
-                .ThenInclude (ee => ee.Etiqueta)
-                .FirstOrDefaultAsync(e => e.Id == id);
-            if (entrada == null) return NotFound();
-
-            var response = new EntradaResponseDTO
-            {
-                Id = entrada.Id,
-                UserId = entrada.UserId,
-                Fecha = entrada.Fecha,
-                Contenido = entrada.Contenido,
-                NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
-                Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new List<string>()
-            };
-
-            return Ok(response);
-        }
-
-        // GET: api/entradas/etiquetas/{tag}
-        [HttpGet("etiqueta/{tag}")]
-        public async Task<ActionResult<IEnumerable<Entrada>>> GetEntradasPorEtiqueta(string tag)
-        {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-            if (userId == 0) return Unauthorized();
-
-            var entradas = await _db.Entradas
-                .Where(e => e.UserId == userId && e.EntradasEtiquetas.Any(ee => ee.Etiqueta.Nombre == tag))
-                .Include(e => e.Usuario)
-                .Include(e => e.EntradasEtiquetas)
-                .ThenInclude(ee => ee.Etiqueta)                
-                .ToListAsync();
-
-            var response = entradas.Select(entrada => new EntradaResponseDTO
-            {
-                Id = entrada.Id,
-                UserId = entrada.UserId,
-                Fecha = entrada.Fecha,
-                Contenido = entrada.Contenido,
-                NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
-                Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new List<string>()
-            });
-
-            return Ok(response);
-        }
-
-
 
 
         // POST: api/entradas
@@ -111,7 +117,7 @@ namespace DiarioPersonalApi.Controllers
             // Validar que el usuario exista.
             //var usuario = await _db.Usuarios.FindAsync(entradaDTO.UserId);
             //if (usuario == null) return BadRequest("Usuario no encontrado");
-            
+
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             if (userId == 0) return Unauthorized();
 
@@ -143,7 +149,7 @@ namespace DiarioPersonalApi.Controllers
 
             await _db.SaveChangesAsync();
 
-            var usuario = await _db.Usuarios.FindAsync(userId); 
+            var usuario = await _db.Usuarios.FindAsync(userId);
             var response = new EntradaResponseDTO
             {
                 Id = entrada.Id,
@@ -156,6 +162,7 @@ namespace DiarioPersonalApi.Controllers
 
             return CreatedAtAction(nameof(GetEntradaUsuario), new { id = entrada.Id }, response);
         }
+
 
 
         // PUT: api/entradas/5
@@ -206,14 +213,106 @@ namespace DiarioPersonalApi.Controllers
         public async Task<IActionResult> DeleteEntrada(int id)
         {
             var entrada = await _db.Entradas.FindAsync(id);
-            if (entrada == null) return NotFound(); 
+            if (entrada == null) return NotFound();
 
             _db.Entradas.Remove(entrada);
             await _db.SaveChangesAsync();
             return NoContent();
         }
 
-        
+
+        #endregion
+
+
+
+
+        #region " ADMINISTRADOR. "
+
+        // POST: api/entradas/admin
+        [HttpPost("admin")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<ActionResult<EntradaResponseDTO>> PostEntradaAdmin([FromBody] EntradaRequestDTO entradaDto)
+        {
+            var usuario = await _db.Usuarios.FindAsync(entradaDto.UserId);
+            if (usuario == null) return BadRequest("Usuario no encontrado");
+
+            var entrada = new Entrada
+            {
+                UserId = entradaDto.UserId,
+                Fecha = entradaDto.Fecha,
+                Contenido = entradaDto.Contenido
+            };
+            _db.Entradas.Add(entrada);
+
+            var hashtags = Regex.Matches(entrada.Contenido, @"#\w+")
+                .Select(m => m.Value.Substring(1))
+                .Distinct();
+            foreach (var tag in hashtags)
+            {
+                var etiqueta = await _db.Etiquetas.FirstOrDefaultAsync(e => e.Nombre == tag)
+                    ?? new Etiqueta { Nombre = tag };
+                if (etiqueta.Id == 0) _db.Etiquetas.Add(etiqueta);
+                _db.EntradasEtiquetas.Add(new EntradaEtiqueta
+                {
+                    Entrada = entrada,
+                    Etiqueta = etiqueta
+                });
+            }
+
+            await _db.SaveChangesAsync();
+
+            var response = new EntradaResponseDTO
+            {
+                Id = entrada.Id,
+                UserId = entrada.UserId,
+                Fecha = entrada.Fecha,
+                Contenido = entrada.Contenido,
+                NombreUsuario = usuario.NombreUsuario,
+                Etiquetas = hashtags.ToList()
+            };
+            return CreatedAtAction(nameof(GetEntradaUsuario), new { id = entrada.Id }, response);
+        }
+
+
+
+
+        // PUT: api/entradas/admin/{id}
+        [HttpPut("admin/{id}")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> PutEntradaAdmin(int id, [FromBody] EntradaRequestDTO entradaDto)
+        {
+            var entrada = await _db.Entradas
+                .Include(e => e.EntradasEtiquetas)
+                .FirstOrDefaultAsync(e => e.Id == id);
+            if (entrada == null) return NotFound();
+
+            entrada.UserId = entradaDto.UserId; // Admin puede cambiar el usuario
+            entrada.Fecha = entradaDto.Fecha;
+            entrada.Contenido = entradaDto.Contenido;
+
+            _db.EntradasEtiquetas.RemoveRange(entrada.EntradasEtiquetas ?? new List<EntradaEtiqueta>());
+            var hashtags = Regex.Matches(entrada.Contenido, @"#\w+")
+                .Select(m => m.Value.Substring(1))
+                .Distinct();
+            foreach (var tag in hashtags)
+            {
+                var etiqueta = await _db.Etiquetas.FirstOrDefaultAsync(e => e.Nombre == tag)
+                    ?? new Etiqueta { Nombre = tag };
+                if (etiqueta.Id == 0) _db.Etiquetas.Add(etiqueta);
+                _db.EntradasEtiquetas.Add(new EntradaEtiqueta
+                {
+                    EntradaId = entrada.Id,
+                    Etiqueta = etiqueta
+                });
+            }
+
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+
+
+
+
         // DELETE: api/entradas/admin/{id}
         [HttpDelete("admin/{id}")]
         [Authorize(Policy = "AdminOnly")]
@@ -228,9 +327,20 @@ namespace DiarioPersonalApi.Controllers
         }
 
 
+        #endregion
+
+
+
+        #region " OTROS. "
+        
         private bool EntradaExists(int idEntrada)
         {
             return _db.Entradas.Any(e => e.Id == idEntrada);
         }
+
+
+        #endregion
+
+
     }
 }
