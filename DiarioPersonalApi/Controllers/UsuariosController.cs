@@ -77,11 +77,16 @@ namespace DiarioPersonalApi.Controllers
             var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             if (currentUserId != userId && !User.IsInRole("Admin")) return Forbid("No autorizado");
 
+            var usuario = await _db.Usuarios.FindAsync(userId);
+            if (usuario == null) return NotFound("Usuario no encontrado");
+
             var entradas = await _db.Entradas
                 .Where(e => e.UserId == userId)
                 .Include(e => e.EntradasEtiquetas)
                 .ThenInclude(ee => ee.Etiqueta)
                 .ToListAsync();
+
+            if (!entradas.Any()) return NotFound("No se encontraron entradas para este usuario");
 
             var tags = entradas
                 .SelectMany(e => e.EntradasEtiquetas ?? new List<EntradaEtiqueta>())

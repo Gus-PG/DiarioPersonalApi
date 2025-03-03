@@ -375,12 +375,57 @@ namespace DiarioPersonalApi.Controllers
         }
 
 
+        // GET: api/entradas/admin/stats
+        [HttpGet("admin/stats")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<ActionResult<GlobalStatsDTO>> GetGlobalStats()
+        {
+            var entradas = await _db.Entradas
+                .Include(e => e.Usuario)
+                .Include(e => e.EntradasEtiquetas)
+                .ThenInclude(ee => ee.Etiqueta)
+                .ToListAsync();
+
+            var usuarios = await _db.Usuarios.ToListAsync();
+
+            var usuarioMasActivo = entradas
+                .GroupBy(e => e.UserId)
+                .OrderByDescending(g => g.Count())
+                .Select(g => new { UserId = g.Key, Count = g.Count() })
+                .FirstOrDefault();
+            var hashtagMasUsado = entradas
+                .SelectMany(e => e.EntradasEtiquetas ?? new List<EntradaEtiqueta>())
+                .GroupBy(ee => ee.Etiqueta.Nombre)
+                .OrderByDescending(g => g.Count())
+                .Select(g => new { Nombre = g.Key, Count = g.Count() })
+                .FirstOrDefault();
+            var diaMasActivo = entradas
+                .GroupBy(e => e.Fecha.Date)
+                .OrderByDescending(g => g.Count())
+                .Select(g => new { Fecha = g.Key, Count = g.Count() })
+                .FirstOrDefault();
+
+            var stats = new GlobalStatsDTO
+            {
+                TotalEntradas = entradas.Count,
+                TotalUsuarios = usuarios.Count,
+                UsuarioMasActivo = usuarioMasActivo != null ? _db.Usuarios.Find(usuarioMasActivo.UserId)?.NombreUsuario : null,
+                EntradasUsuarioMasActivo = usuarioMasActivo?.Count ?? 0,
+                HashtagMasUsado = hashtagMasUsado?.Nombre,
+                UsosHashtagMasUsado = hashtagMasUsado?.Count ?? 0,
+                DiaMasActivo = diaMasActivo?.Fecha,
+                EntradasDiaMasActivo = diaMasActivo?.Count ?? 0
+            };
+            return Ok(stats);
+        }
+
+
         #endregion
 
 
 
         #region " OTROS. "
-        
+
         private bool EntradaExists(int idEntrada)
         {
             return _db.Entradas.Any(e => e.Id == idEntrada);
