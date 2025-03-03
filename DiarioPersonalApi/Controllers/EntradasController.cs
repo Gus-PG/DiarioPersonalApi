@@ -170,17 +170,13 @@ namespace DiarioPersonalApi.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutEntrada(int id, [FromBody] EntradaRequestDTO entradaDTO)
         {
-            //if (id != entradaDTO.Id) return BadRequest("ID no coincide"); 
-            //var existingEntrada = await _db.Entradas.FindAsync(id);
-            //if (existingEntrada == null) return NotFound();
-            //if (existingEntrada.UserId != entrada.UserId) return Forbid("No autorizado");
-
             var entrada = await _db.Entradas
                 .Include(e => e.EntradasEtiquetas)
                 .FirstOrDefaultAsync(e => e.Id == id);
+            
+            // Comprobaciones.
             if (entrada == null) return NotFound();
             if (entrada.UserId != entradaDTO.UserId) return Forbid("No autorizado");
-
             entrada.Fecha = entradaDTO.Fecha;
             entrada.Contenido = entradaDTO.Contenido;
 
@@ -228,6 +224,58 @@ namespace DiarioPersonalApi.Controllers
 
         #region " ADMINISTRADOR. "
 
+
+        // GET: api/entradas/admin/{id}
+        [HttpGet("admin/{id}")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<ActionResult<EntradaResponseDTO>> GetEntradaAdmin(int id)
+        {
+            var entrada = await _db.Entradas
+                .Include(e => e.Usuario)
+                .Include(e => e.EntradasEtiquetas)
+                .ThenInclude(ee => ee.Etiqueta)
+                .FirstOrDefaultAsync(e => e.Id == id);
+            if (entrada == null) return NotFound();
+
+            var response = new EntradaResponseDTO
+            {
+                Id = entrada.Id,
+                UserId = entrada.UserId,
+                Fecha = entrada.Fecha,
+                Contenido = entrada.Contenido,
+                NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
+                Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new List<string>()
+            };
+            return Ok(response);
+        }
+
+
+
+        // GET: api/entradas/admin/all
+        [HttpGet("admin/all")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<ActionResult<IEnumerable<EntradaResponseDTO>>> GetAllEntradasAdmin()
+        {
+            var entradas = await _db.Entradas
+                .Include(e => e.Usuario)
+                .Include(e => e.EntradasEtiquetas)
+                .ThenInclude(ee => ee.Etiqueta)
+                .ToListAsync();
+
+            var response = entradas.Select(entrada => new EntradaResponseDTO
+            {
+                Id = entrada.Id,
+                UserId = entrada.UserId,
+                Fecha = entrada.Fecha,
+                Contenido = entrada.Contenido,
+                NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
+                Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new List<string>()
+            });
+            return Ok(response);
+        }
+
+
+
         // POST: api/entradas/admin
         [HttpPost("admin")]
         [Authorize(Policy = "AdminOnly")]
@@ -270,7 +318,7 @@ namespace DiarioPersonalApi.Controllers
                 NombreUsuario = usuario.NombreUsuario,
                 Etiquetas = hashtags.ToList()
             };
-            return CreatedAtAction(nameof(GetEntradaUsuario), new { id = entrada.Id }, response);
+            return CreatedAtAction(nameof(GetEntradaAdmin), new { id = entrada.Id }, response);
         }
 
 
