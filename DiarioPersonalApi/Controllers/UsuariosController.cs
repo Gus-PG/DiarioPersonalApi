@@ -1,5 +1,6 @@
 ﻿using DiarioPersonalApi.Data;
 using DiarioPersonalApi.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -64,6 +65,43 @@ namespace DiarioPersonalApi.Controllers
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return Ok(tokenHandler.WriteToken(token));
+        }
+
+
+
+        // GET: api/usuarios/{userId}/stats
+        [HttpGet("{userId}/stats")]
+        [Authorize]
+        public async Task<ActionResult<UsuarioStatsDTO>> GetUsuarioStats(int userId)
+        {
+            var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (currentUserId != userId && !User.IsInRole("Admin")) return Forbid("No autorizado");
+
+            var entradas = await _db.Entradas
+                .Where(e => e.UserId == userId)
+                .Include(e => e.EntradasEtiquetas)
+                .ThenInclude(ee => ee.Etiqueta)
+                .ToListAsync();
+
+            var tags = entradas
+                .SelectMany(e => e.EntradasEtiquetas ?? new List<EntradaEtiqueta>())
+                .GroupBy(ee => ee.Etiqueta.Nombre)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            var diaMasActivo = entradas
+                .GroupBy(e => e.Fecha.Date)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key)
+                .FirstOrDefault();
+
+            var stats = new UsuarioStatsDTO
+            {
+                TotalEntradas = entradas.Count,
+                TotalEtiquetas = tags.Count,
+                EtiquetasMasUsadas = tags.OrderByDescending(t => t.Value).Take(5).ToDictionary(t => t.Key, t => t.Value),
+                DiaMasActivo = diaMasActivo == default ? null : diaMasActivo
+            };
+            return Ok(stats);
         }
     }    
 }
