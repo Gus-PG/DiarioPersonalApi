@@ -10,6 +10,8 @@ using DiarioPersonalApi.Models;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 
 namespace DiarioPersonalApi.Controllers
 {
@@ -217,6 +219,44 @@ namespace DiarioPersonalApi.Controllers
         }
 
 
+
+        // GET: api/entradas/export
+        [HttpGet("export")]
+        [Authorize]
+        public async Task<IActionResult> ExportEntradas()
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (userId == 0) return Unauthorized();
+
+            var entradas = await _db.Entradas
+                .Where(e => e.UserId == userId)
+                .Include(e => e.Usuario)
+                .Include(e => e.EntradasEtiquetas)
+                .ThenInclude(ee => ee.Etiqueta)
+                .ToListAsync();
+
+            if (!entradas.Any()) return NotFound("No hay entradas para exportar");
+
+            var exportData = entradas.Select(entrada => new EntradaResponseDTO
+            {
+                Id = entrada.Id,
+                UserId = entrada.UserId,
+                Fecha = entrada.Fecha,
+                Contenido = entrada.Contenido,
+                NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
+                Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new List<string>()
+            }).ToList();
+
+            return File(
+                Encoding.UTF8.GetBytes(JsonSerializer.Serialize(exportData)),
+                "application/json",
+                $"diario_{userId}_{DateTime.Now:yyyyMMdd}.json"
+                );
+        }
+
+
+
+
         #endregion
 
 
@@ -375,6 +415,8 @@ namespace DiarioPersonalApi.Controllers
         }
 
 
+
+
         // GET: api/entradas/admin/stats
         [HttpGet("admin/stats")]
         [Authorize(Policy = "AdminOnly")]
@@ -418,6 +460,44 @@ namespace DiarioPersonalApi.Controllers
             };
             return Ok(stats);
         }
+
+
+
+
+        // GET: api/entradas/admin/export
+        [HttpGet("admin/export")]
+        [Authorize(Policy ="AdminOnly")]
+        public async Task<IActionResult> ExportAllEntradas()
+        {
+            var entradas = await _db.Entradas
+                .Include(e => e.Usuario)
+                .Include(e => e.EntradasEtiquetas)
+                .ThenInclude(ee => ee.Etiqueta)
+                .ToListAsync();
+
+            if (!entradas.Any()) return NotFound("No hay entradas para exportar");
+
+            var exportData = entradas.Select(entrada => new EntradaResponseDTO
+            {
+                Id = entrada.Id,
+                UserId = entrada.UserId,
+                Fecha = entrada.Fecha,
+                Contenido = entrada.Contenido,
+                NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
+                Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new List<string>()
+            });
+
+
+            return File(
+                Encoding.UTF8.GetBytes(JsonSerializer.Serialize(exportData)),
+                "application/json",
+                $"diario_completo_{DateTime.Now:yyyyMMdd}, json"
+            );
+        }
+
+
+
+
 
 
         #endregion
