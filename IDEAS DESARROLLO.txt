@@ -12,10 +12,52 @@ DESARROLLO API DIARIO:
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIyIiwidW5pcXVlX25hbWUiOiJ1c2VyMiIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc0MDk1MzA0NSwiZXhwIjoxNzQwOTU2NjQ1LCJpYXQiOjE3NDA5NTMwNDV9.y47O6kzXUo1SINk0_n7xMaPsp7vX57qUJTHvN4Sq61k
 
 
-
---> SUGERENCIAS
+************************
+SUGERENCIAS:
+************************
 --> PARA QUE NO ENGAÑEN CON CANTIDAD DE HASHTAGS, VER FORMA DE HACERLO.
 --> AÑADIR enNDPOINT PARA EXPORTAR 1 SOLA ENTRADA?
+
+
+
+
+************************
+NOTAS DESARROLLO:
+************************
+BBDD LOCAL:
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=DiarioPersonalDb;Trusted_Connection=True;MultipleActiveResultSets=true"
+
+BBDD SMARTERASP.NET:
+-------------------
+SERVER:		SQL6033.site4now.net
+PORT:		1433
+DATABASE NAME:	db_aadd2e_diariopersonaldb
+USER NAME:	db_aadd2e_diariopersonaldb_admin
+
+
+Password FTP: Stndrd*01
+Password BBDD: Stndrd*01
+Clave Larga: ""
+
+
+************************
+NOTAS SMARTERASP:
+************************
+- EN VS22:
+-> Despues de publicar por primera vez:
+
+En Program.cs (ANTES De app.Run() ), poner:
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DiarioDbContext>();
+    db.Database.Migrate();
+}
+
+-> Publicar y comprobar que se han creado las tablas de la bbdd.
+-> ELIMINAR ESAS LÍNEAS de Program.cs
+
+
+
 
 
 
