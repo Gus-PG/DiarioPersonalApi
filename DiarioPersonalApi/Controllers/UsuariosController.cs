@@ -64,8 +64,15 @@ namespace DiarioPersonalApi.Controllers
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
-            return Ok(tokenHandler.WriteToken(token));
-        }
+            var tokenString = tokenHandler.WriteToken(token);
+
+            return Ok(new LoginResponseDTO
+            {
+                Success = true,
+                Token = tokenString,
+                Message = "Login exitoso"
+            });
+        }   
 
 
 
