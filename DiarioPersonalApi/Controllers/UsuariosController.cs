@@ -88,7 +88,7 @@ namespace DiarioPersonalApi.Controllers
             if (usuario == null) return NotFound("Usuario no encontrado");
 
             var entradas = await _db.Entradas
-                .Where(e => e.UserId == userId)
+                .Where(e => e.UsuarioId == userId)
                 .Include(e => e.EntradasEtiquetas)
                 .ThenInclude(ee => ee.Etiqueta)
                 .ToListAsync();
