@@ -3,7 +3,7 @@
     public class Entrada
     {
         public int Id {  get; set; }
-        public int UserId {  get; set; }    // Clave foránea
+        public int UsuarioId {  get; set; }    // Clave foránea
         public required DateTime Fecha { get; set; }
         public required string Contenido { get; set; }
         public Usuario? Usuario { get; set; }    // Propiedad de Navegación.

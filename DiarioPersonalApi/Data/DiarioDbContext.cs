@@ -18,7 +18,7 @@ namespace DiarioPersonalApi.Data
             modelBuilder.Entity<Entrada>()
                 .HasOne(e => e.Usuario)
                 .WithMany(u => u.Entradas)
-                .HasForeignKey(e => e.UserId);
+                .HasForeignKey(e => e.UsuarioId);
 
             modelBuilder.Entity<EntradaEtiqueta>()
                            .HasKey(e => new { e.EntradaId, e.EtiquetaId });

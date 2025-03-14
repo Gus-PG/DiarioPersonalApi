@@ -35,7 +35,7 @@ namespace DiarioPersonalApi.Controllers
         public async Task<ActionResult<IEnumerable<EntradaResponseDTO>>> GetEntradasUsuario(int userId)
         {
             var entradas = await _db.Entradas
-               .Where(e => e.UserId == userId)
+               .Where(e => e.UsuarioId == userId)
                .Include(e => e.Usuario)
                .Include(e => e.EntradasEtiquetas)
                .ThenInclude(ee => ee.Etiqueta)
@@ -44,7 +44,7 @@ namespace DiarioPersonalApi.Controllers
             var response = entradas.Select(entrada => new EntradaResponseDTO
             {
                 Id = entrada.Id,
-                UserId = entrada.UserId,
+                UserId = entrada.UsuarioId,
                 Fecha = entrada.Fecha,
                 Contenido = entrada.Contenido,
                 NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
@@ -70,7 +70,7 @@ namespace DiarioPersonalApi.Controllers
             var response = new EntradaResponseDTO
             {
                 Id = entrada.Id,
-                UserId = entrada.UserId,
+                UserId = entrada.UsuarioId,
                 Fecha = entrada.Fecha,
                 Contenido = entrada.Contenido,
                 NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
@@ -90,7 +90,7 @@ namespace DiarioPersonalApi.Controllers
             if (userId == 0) return Unauthorized();
 
             var entradas = await _db.Entradas
-                .Where(e => e.UserId == userId && e.EntradasEtiquetas.Any(ee => ee.Etiqueta.Nombre == tag))
+                .Where(e => e.UsuarioId == userId && e.EntradasEtiquetas.Any(ee => ee.Etiqueta.Nombre == tag))
                 .Include(e => e.Usuario)
                 .Include(e => e.EntradasEtiquetas)
                 .ThenInclude(ee => ee.Etiqueta)
@@ -99,7 +99,7 @@ namespace DiarioPersonalApi.Controllers
             var response = entradas.Select(entrada => new EntradaResponseDTO
             {
                 Id = entrada.Id,
-                UserId = entrada.UserId,
+                UserId = entrada.UsuarioId,
                 Fecha = entrada.Fecha,
                 Contenido = entrada.Contenido,
                 NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
@@ -125,7 +125,7 @@ namespace DiarioPersonalApi.Controllers
 
             var entrada = new Entrada
             {
-                UserId = userId,    // Del Token, no del DTO.
+                UsuarioId = userId,    // Del Token, no del DTO.
                 Fecha = entradaDTO.Fecha,
                 Contenido = entradaDTO.Contenido
             };
@@ -155,7 +155,7 @@ namespace DiarioPersonalApi.Controllers
             var response = new EntradaResponseDTO
             {
                 Id = entrada.Id,
-                UserId = entrada.UserId,
+                UserId = entrada.UsuarioId,
                 Fecha = entrada.Fecha,
                 Contenido = entrada.Contenido,
                 NombreUsuario = usuario?.NombreUsuario ?? "",
@@ -178,7 +178,7 @@ namespace DiarioPersonalApi.Controllers
             
             // Comprobaciones.
             if (entrada == null) return NotFound();
-            if (entrada.UserId != entradaDTO.UserId) return Forbid("No autorizado");
+            if (entrada.UsuarioId != entradaDTO.UserId) return Forbid("No autorizado");
             entrada.Fecha = entradaDTO.Fecha;
             entrada.Contenido = entradaDTO.Contenido;
 
@@ -229,7 +229,7 @@ namespace DiarioPersonalApi.Controllers
             if (userId == 0) return Unauthorized();
 
             var entradas = await _db.Entradas
-                .Where(e => e.UserId == userId)
+                .Where(e => e.UsuarioId == userId)
                 .Include(e => e.Usuario)
                 .Include(e => e.EntradasEtiquetas)
                 .ThenInclude(ee => ee.Etiqueta)
@@ -240,7 +240,7 @@ namespace DiarioPersonalApi.Controllers
             var exportData = entradas.Select(entrada => new EntradaResponseDTO
             {
                 Id = entrada.Id,
-                UserId = entrada.UserId,
+                UserId = entrada.UsuarioId,
                 Fecha = entrada.Fecha,
                 Contenido = entrada.Contenido,
                 NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
@@ -280,7 +280,7 @@ namespace DiarioPersonalApi.Controllers
             var response = new EntradaResponseDTO
             {
                 Id = entrada.Id,
-                UserId = entrada.UserId,
+                UserId = entrada.UsuarioId,
                 Fecha = entrada.Fecha,
                 Contenido = entrada.Contenido,
                 NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
@@ -305,7 +305,7 @@ namespace DiarioPersonalApi.Controllers
             var response = entradas.Select(entrada => new EntradaResponseDTO
             {
                 Id = entrada.Id,
-                UserId = entrada.UserId,
+                UserId = entrada.UsuarioId,
                 Fecha = entrada.Fecha,
                 Contenido = entrada.Contenido,
                 NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
@@ -326,7 +326,7 @@ namespace DiarioPersonalApi.Controllers
 
             var entrada = new Entrada
             {
-                UserId = entradaDto.UserId,
+                UsuarioId = entradaDto.UserId,
                 Fecha = entradaDto.Fecha,
                 Contenido = entradaDto.Contenido
             };
@@ -352,7 +352,7 @@ namespace DiarioPersonalApi.Controllers
             var response = new EntradaResponseDTO
             {
                 Id = entrada.Id,
-                UserId = entrada.UserId,
+                UserId = entrada.UsuarioId,
                 Fecha = entrada.Fecha,
                 Contenido = entrada.Contenido,
                 NombreUsuario = usuario.NombreUsuario,
@@ -374,7 +374,7 @@ namespace DiarioPersonalApi.Controllers
                 .FirstOrDefaultAsync(e => e.Id == id);
             if (entrada == null) return NotFound();
 
-            entrada.UserId = entradaDto.UserId; // Admin puede cambiar el usuario
+            entrada.UsuarioId = entradaDto.UserId; // Admin puede cambiar el usuario
             entrada.Fecha = entradaDto.Fecha;
             entrada.Contenido = entradaDto.Contenido;
 
@@ -431,7 +431,7 @@ namespace DiarioPersonalApi.Controllers
             var usuarios = await _db.Usuarios.ToListAsync();
 
             var usuarioMasActivo = entradas
-                .GroupBy(e => e.UserId)
+                .GroupBy(e => e.UsuarioId)
                 .OrderByDescending(g => g.Count())
                 .Select(g => new { UserId = g.Key, Count = g.Count() })
                 .FirstOrDefault();
@@ -480,7 +480,7 @@ namespace DiarioPersonalApi.Controllers
             var exportData = entradas.Select(entrada => new EntradaResponseDTO
             {
                 Id = entrada.Id,
-                UserId = entrada.UserId,
+                UserId = entrada.UsuarioId,
                 Fecha = entrada.Fecha,
                 Contenido = entrada.Contenido,
                 NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
