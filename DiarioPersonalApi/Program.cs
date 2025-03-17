@@ -1,5 +1,8 @@
 using DiarioPersonalApi.Data;
 using DiarioPersonalApi.Models;
+using DiarioPersonalApi.Services;
+using DiarioPersonalApi.Validators;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -10,7 +13,8 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<RegisterRequestDTOValidator>());
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -43,6 +47,8 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddDbContext<DiarioDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddSingleton<EmailService>();
 
 // Configurar JWT
 var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]); // Cambia esto en producción
@@ -109,9 +115,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-
-// Endpoint de prueba
-app.MapGet("/test", () => "¡La app está funcionando!");
 
 //using (var scope = app.Services.CreateScope())
 //{

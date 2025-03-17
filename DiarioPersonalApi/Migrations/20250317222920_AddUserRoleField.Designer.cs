@@ -4,6 +4,7 @@ using DiarioPersonalApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DiarioPersonalApi.Migrations
 {
     [DbContext(typeof(DiarioDbContext))]
-    partial class DiarioDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250317222920_AddUserRoleField")]
+    partial class AddUserRoleField
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

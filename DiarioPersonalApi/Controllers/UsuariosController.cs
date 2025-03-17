@@ -1,5 +1,6 @@
 ﻿using DiarioPersonalApi.Data;
 using DiarioPersonalApi.Models;
+using DiarioPersonalApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.Data;
@@ -18,38 +19,99 @@ namespace DiarioPersonalApi.Controllers
     {
         private readonly DiarioDbContext _db;
         private readonly IConfiguration _config;
+        private readonly EmailService _emailService;
 
-        public UsuariosController(DiarioDbContext db, IConfiguration config)
+        public UsuariosController(DiarioDbContext db, IConfiguration config, EmailService emailService)
         {
             _db = db;
             _config = config;
+            _emailService = emailService;
         }
 
         // POST: api/usuarios/register
         [HttpPost("register")]
         public async Task<ActionResult<Usuario>> Register([FromBody] RegisterRequestDTO request)
         {
-            if (await _db.Usuarios.AnyAsync(u => u.NombreUsuario == request.NombreUsuario))
-                return BadRequest("Usuario ya existe");
+            // 1 - Validamos si existe el mail en la bbdd.
+            if (await _db.Usuarios.AnyAsync(u => u.Email == request.Email))
+                return BadRequest("Ya existe un usuario con ese email.");
 
+            // 2 - Creamos nuevo usuario con mail no confirmado.
             var usuario = new Usuario
             {
-                NombreUsuario = request.NombreUsuario,
-                ContraseñaHash = BCrypt.Net.BCrypt.HashPassword(request.Contraseña)
+                Email = request.Email,
+                NombreUsuario = request.NombreUsuario, // Alias opcional.
+                ContraseñaHash = BCrypt.Net.BCrypt.HashPassword(request.Contraseña),
+                Role = "User",
+                EmailConfirmed = false                
             };
+
             _db.Usuarios.Add(usuario);
             await _db.SaveChangesAsync();
-            return CreatedAtAction(nameof(Register), new { id = usuario.Id }, usuario);
+
+            // 3 - Generamos token de confirmación.
+            var token = Guid.NewGuid().ToString();
+            usuario.ConfirmationToken = token;
+            usuario.ConfirmationTokenExpiry = DateTime.UtcNow.AddHours(24);
+            await _db.SaveChangesAsync();
+
+            // 4 - Construimos el enlace de confirmación.
+            var confirmLink = $"https://api.diario.peakappstudio.es/api/usuarios/ConfirmarEmail?token={token}";
+
+            // 5 - Enviar correo
+            await _emailService.EnviarCorreoConfirmacion(usuario.Email, confirmLink);
+
+            // 6 - Devolver un mensaje
+            return Ok(new
+            {
+                Succes = true,
+                Message = "Usuario registrado. Revisa tu correo para confirmar y poder empezar."
+            });            
+        }
+
+        [HttpGet("ConfirmarEmail")]
+        public async Task<IActionResult> ConfirmarEmail([FromQuery] string token)
+        {
+            var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.ConfirmationToken == token);
+            if (usuario == null) 
+                return BadRequest("Token inválido");
+            if (usuario.ConfirmationTokenExpiry < DateTime.UtcNow)
+                return BadRequest("Token caducado.");
+
+            usuario.EmailConfirmed = true;
+            usuario.ConfirmationToken = null;
+            usuario.ConfirmationTokenExpiry = null;
+            await _db.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Correo confirmado. Ya puedes iniciar sesión."
+            });                               
         }
 
 
         [HttpPost("login")]
         public async Task<ActionResult<string>> Login([FromBody] LoginRequestDTO request)
         {
-            var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuario == request.NombreUsuario);
+            // Buscamos usuario por mail.
+            var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (usuario == null || !BCrypt.Net.BCrypt.Verify(request.Contraseña, usuario.ContraseñaHash))
                 return Unauthorized("Credenciales inválidas");
 
+
+            // (Opcional) Verificar usuario.EmailConfirmed si implementaste confirmación
+             if (!usuario.EmailConfirmed)
+            {
+                return Ok(new LoginResponseDTO
+                {
+                    Success = false,
+                    Token = null,
+                    Message = "Debes confirmar tu correo antes de iniciar sesión."
+                });
+            }
+
+            // Generar token JWT.
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_config["Jwt:Key"]); 
             var tokenDescriptor = new SecurityTokenDescriptor
@@ -58,14 +120,17 @@ namespace DiarioPersonalApi.Controllers
                 {
                     new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                     new Claim(ClaimTypes.Name, usuario.NombreUsuario),
-                    new Claim(ClaimTypes.Role, usuario.NombreUsuario == "user2" ? "Admin" : "User") // Temporal OJO*****************************
+                    new Claim(ClaimTypes.Role, usuario.Role) 
                 }),
                 Expires = DateTime.UtcNow.AddHours(1),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(key), 
+                    SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var tokenString = tokenHandler.WriteToken(token);
 
+            // Devolver respuesta con token.
             return Ok(new LoginResponseDTO
             {
                 Success = true,
