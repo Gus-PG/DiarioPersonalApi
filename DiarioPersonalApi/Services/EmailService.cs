@@ -1,6 +1,7 @@
 ﻿using System.Net.Mail;
 using System.Net;
 using DiarioPersonalApi.Settings;
+using Microsoft.Extensions.Options;
 
 namespace DiarioPersonalApi.Services
 {
@@ -8,9 +9,9 @@ namespace DiarioPersonalApi.Services
     {
         private readonly SmtpSettings _smtpSettings;
 
-        public EmailService(SmtpSettings smtpSettings)
+        public EmailService(IOptions<SmtpSettings> smtpSettings)
         {
-            _smtpSettings = smtpSettings;
+            _smtpSettings = smtpSettings.Value;
         }
 
         public async Task EnviarCorreoConfirmacion(string emailDestino, string confirmLink)
