@@ -1,6 +1,7 @@
 using DiarioPersonalApi.Data;
 using DiarioPersonalApi.Models;
 using DiarioPersonalApi.Services;
+using DiarioPersonalApi.Settings;
 using DiarioPersonalApi.Validators;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -47,8 +48,10 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddDbContext<DiarioDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 builder.Services.AddSingleton<EmailService>();
+
+// Si se solicita un IOptions<SmtpSettings>, lo mapeará con la sección "SmtpSettings" del appsettings.json.
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
 
 // Configurar JWT
 var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]); // Cambia esto en producción
