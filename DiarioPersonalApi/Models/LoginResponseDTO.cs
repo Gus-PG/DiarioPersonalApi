@@ -3,7 +3,7 @@
     public class LoginResponseDTO
     {
         public string Token { get; set; }
-        public bool Success { get; set; }
-        public string Message { get; set; }
+        public string Rol { get; set; }
+        public string NombreUsuario { get; set; }
     }
 }

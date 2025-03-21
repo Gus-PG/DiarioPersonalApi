@@ -2,8 +2,8 @@
 {
     public class RegisterRequestDTO
     {
-        public required string NombreUsuario { get; set; }
-        public required string Email { get; set; }
-        public required string Contraseña { get; set; }
+        public string NombreUsuario { get; set; }
+        public string Email { get; set; }
+        public string Contraseña { get; set; }
     }
 }

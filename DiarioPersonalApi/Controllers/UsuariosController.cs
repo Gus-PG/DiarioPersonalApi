@@ -30,7 +30,7 @@ namespace DiarioPersonalApi.Controllers
 
         // POST: api/usuarios/register
         [HttpPost("register")]
-        public async Task<ActionResult<Usuario>> Register([FromBody] RegisterRequestDTO request)
+        public async Task<ActionResult<ApiResponse<string>>> Register(RegisterRequestDTO request)
         {
             // 1 - Validamos si existe el mail en la bbdd.
             if (await _db.Usuarios.AnyAsync(u => u.Email == request.Email))
@@ -62,11 +62,7 @@ namespace DiarioPersonalApi.Controllers
             await _emailService.EnviarCorreoConfirmacion(usuario.Email, confirmLink);
 
             // 6 - Devolver un mensaje
-            return Ok(new
-            {
-                Succes = true,
-                Message = "Usuario registrado. Revisa tu correo para confirmar y poder empezar."
-            });            
+            return Ok(ApiResponse<string>.Ok("Usuario creado correctamente."));            
         }
 
         [HttpGet("ConfirmarEmail")]
@@ -90,9 +86,9 @@ namespace DiarioPersonalApi.Controllers
             });                               
         }
 
-
+        // POST: /api/usuarios/login
         [HttpPost("login")]
-        public async Task<ActionResult<string>> Login([FromBody] LoginRequestDTO request)
+        public async Task<ActionResult<ApiResponse<LoginResponseDTO>>> Login(LoginRequestDTO request)
         {
             // Buscamos usuario por mail.
             var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Email == request.Email);
@@ -103,12 +99,7 @@ namespace DiarioPersonalApi.Controllers
             // (Opcional) Verificar usuario.EmailConfirmed si implementaste confirmación
              if (!usuario.EmailConfirmed)
             {
-                return Ok(new LoginResponseDTO
-                {
-                    Success = false,
-                    Token = null,
-                    Message = "Debes confirmar tu correo antes de iniciar sesión."
-                });
+                return Ok(ApiResponse<LoginResponseDTO>.Fail("Debes confirmar tu correo antes de iniciar sesión."));
             }
 
             // Generar token JWT.
@@ -130,13 +121,16 @@ namespace DiarioPersonalApi.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var tokenString = tokenHandler.WriteToken(token);
 
-            // Devolver respuesta con token.
-            return Ok(new LoginResponseDTO
+            // Encapsulamos datos necesarios.
+            var loginResponse = new LoginResponseDTO
             {
-                Success = true,
                 Token = tokenString,
-                Message = "Login exitoso"
-            });
+                Rol = usuario.Role,
+                NombreUsuario = usuario.NombreUsuario
+            };
+
+            // Devolver respuesta con token.
+            return Ok(ApiResponse<LoginResponseDTO>.Ok(loginResponse, "Login Exitoso"));
         }   
 
 
@@ -180,5 +174,32 @@ namespace DiarioPersonalApi.Controllers
             };
             return Ok(stats);
         }
+
+
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult<ApiResponse<string>>> ForgotPassword(ForgotPasswordRequestDTO request)
+        {
+            // Lógica para el Forgot Password (Verificaión y envío de contraseña (NO HASH) al mail del usuario) TODO:, NO IMPLEMENTADA**********************************************
+
+            return Ok(ApiResponse<string>.Ok("Correo de recuperación enviado correctamente."));
+        }
+
+
+        [HttpPost("change-password")]
+        public async Task<ActionResult<ApiResponse<string>>> ChangePassword(ChangePasswordRequestDTO request)
+        {
+            if (request.NewPassword != request.ConfirmPassword)
+            {
+                return Ok(ApiResponse<string>.Fail("Las nuevas contraseñas no coinciden."));
+            }
+
+            // Lógica de cambio de contraseña.   TODO:, NO IMPLEMENTADA**********************************************
+
+
+            return Ok(ApiResponse<string>.Ok("Contraseña cambiada correctamente."));
+        }
+
+
+
     }    
 }
