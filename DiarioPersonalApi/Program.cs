@@ -1,4 +1,5 @@
 using DiarioPersonalApi.Data;
+using DiarioPersonalApi.Data.Repositories;
 using DiarioPersonalApi.Models;
 using DiarioPersonalApi.Services;
 using DiarioPersonalApi.Settings;
@@ -48,6 +49,8 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddDbContext<DiarioDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IEntradaRepository, EntradaRepository>();
 
 // Si se solicita un IOptions<SmtpSettings>, lo mapeará con la sección "SmtpSettings" del appsettings.json.
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));

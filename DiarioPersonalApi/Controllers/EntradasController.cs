@@ -28,8 +28,11 @@ namespace DiarioPersonalApi.Controllers
             _iRepo = iRepo;
         }
 
+        // Variables de identificación y autorización.
         private int GetUserId() => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
         private string GetRole() => User.FindFirst(ClaimTypes.Role).Value;
+
+
 
         // 1) Obtener todas las entradas (User y Admin)
         [HttpGet]
@@ -82,7 +85,7 @@ namespace DiarioPersonalApi.Controllers
             return Ok(ApiResponse<EntradaResponseDTO>.Ok(response, "Entrada encontrada"));
         }
 
-        //3 Crear una entrada.
+        // 3) Crear una entrada.
         [HttpPost]
         public async Task<ActionResult<ApiResponse<string>>> CrearEntrada(EntradaRequestDTO request)
         {
@@ -163,6 +166,68 @@ namespace DiarioPersonalApi.Controllers
             var stats = new { TotalEntradas = 100, UsuariosActivos = 20 };
             return Ok(ApiResponse<object>.Ok(stats, "Estadísticas globales"));
         }
+
+        // 7) Buscar por Hashtag
+        [HttpGet("buscar")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<EntradaResponseDTO>>>> BuscarPorHashtag([FromQuery] string hashtag)
+        {
+            if (string.IsNullOrWhiteSpace(hashtag))
+                return Ok(ApiResponse<IEnumerable<EntradaResponseDTO>>.Fail("Hashtag inválido"));
+
+            var userId = GetUserId();
+            var role = GetRole();
+
+            IEnumerable<Entrada> entradas;
+
+            if (role == "Admin")
+                entradas = await _iRepo.SearchByHashtagAdminAsync(hashtag);
+            else
+                entradas = await _iRepo.SearchByHashtagAsync(userId, hashtag);
+
+            var response = entradas.Select(e => new EntradaResponseDTO
+            {
+                Id = e.Id,
+                Contenido = e.Contenido,
+                Fecha = e.Fecha,
+                Etiquetas = e.EntradasEtiquetas.Select(ee => ee.Etiqueta.Nombre).ToList()
+            });
+
+            return Ok(ApiResponse<IEnumerable<EntradaResponseDTO>>.Ok(response, $"Entradas encontradas con #{hashtag}"));
+        }
+
+        // 8) Exportar entradas
+        [HttpGet("export")]
+        public async Task<ActionResult<ApiResponse<string>>> ExportEntradas([FromQuery] int? id = null)
+        {
+            var userId = GetUserId();
+            var role = GetRole();
+
+            List<Entrada> entradas;
+
+            if (id.HasValue)
+            {
+                var entrada = await _iRepo.GetByIdAsync(id.Value);
+                if (entrada == null)
+                    return Ok(ApiResponse<string>.Fail("Entrada no encontrada"));
+
+                if (entrada.UsuarioId != userId && role != "Admin")
+                    return Forbid();
+
+                entradas = new List<Entrada> { entrada };
+            }
+            else
+            {
+                entradas = role == "Admin"
+                    ? (await _iRepo.GetAllAsync()).ToList()
+                    : (await _iRepo.GetByUserIdAsync(userId)).ToList();
+            }
+
+            // 🔵 Aquí exportamos a CSV/JSON o lo que decidas, simulo export: ****** TODO: A QUÉ EXPORTAMOS?? ********************************
+            var export = $"Export de {entradas.Count} entrada(s) realizada correctamente";
+
+            return Ok(ApiResponse<string>.Ok(export));
+        }
+
 
     }
 }
