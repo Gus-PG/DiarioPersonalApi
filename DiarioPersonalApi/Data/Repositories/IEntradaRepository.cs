@@ -7,5 +7,6 @@ namespace DiarioPersonalApi.Data.Repositories
         Task<IEnumerable<Entrada>> GetByUserIdAsync(int userId);
         Task<IEnumerable<Entrada>> SearchByHashtagAsync(int userId, string hashtag);
         Task<IEnumerable<Entrada>> SearchByHashtagAdminAsync(string hashtag);
+        Task<List<EntradaPreviewDTO>> GetPreviewEntradasPaginadoAsync(int userId, int page, int pageSize);
     }
 }

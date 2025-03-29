@@ -85,7 +85,17 @@ namespace DiarioPersonalApi.Controllers
             return Ok(ApiResponse<EntradaResponseDTO>.Ok(response, "Entrada encontrada"));
         }
 
-        // 3) Crear una entrada.
+        // 3) Obtiene preview de las entradas (usando paginación (20 por página)).
+        [HttpGet("preview")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<List<EntradaPreviewDTO>>>> GetEntradasPreview([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var result = await _iRepo.GetPreviewEntradasPaginadoAsync(userId, page, pageSize);
+            return Ok(ApiResponse<List<EntradaPreviewDTO>>.Ok(result));
+        }
+
+        // 4) Crear una entrada.
         [HttpPost]
         public async Task<ActionResult<ApiResponse<string>>> CrearEntrada(EntradaRequestDTO request)
         {
@@ -111,7 +121,7 @@ namespace DiarioPersonalApi.Controllers
         }
 
 
-        // 4) Editar entrada
+        // 5) Editar entrada
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<string>>> EditarEntrada(int id, EntradaRequestDTO request)
         {
@@ -134,7 +144,7 @@ namespace DiarioPersonalApi.Controllers
         }
 
 
-        // 5) Eliminar entrada
+        // 6) Eliminar entrada
         [HttpDelete("{id}")]
         public async Task<ActionResult<ApiResponse<string>>> EliminarEntrada(int id)
         {
@@ -155,7 +165,7 @@ namespace DiarioPersonalApi.Controllers
         }
 
 
-        // 6) Endpoint extra: estadísticas solo para Admin
+        // 7) Endpoint extra: estadísticas solo para Admin
         [HttpGet("stats")]
         public IActionResult GetGlobalStats()
         {
@@ -167,7 +177,7 @@ namespace DiarioPersonalApi.Controllers
             return Ok(ApiResponse<object>.Ok(stats, "Estadísticas globales"));
         }
 
-        // 7) Buscar por Hashtag
+        // 8) Buscar por Hashtag
         [HttpGet("buscar")]
         public async Task<ActionResult<ApiResponse<IEnumerable<EntradaResponseDTO>>>> BuscarPorHashtag([FromQuery] string hashtag)
         {
@@ -195,7 +205,7 @@ namespace DiarioPersonalApi.Controllers
             return Ok(ApiResponse<IEnumerable<EntradaResponseDTO>>.Ok(response, $"Entradas encontradas con #{hashtag}"));
         }
 
-        // 8) Exportar entradas
+        // 9) Exportar entradas
         [HttpGet("export")]
         public async Task<ActionResult<ApiResponse<string>>> ExportEntradas([FromQuery] int? id = null)
         {
