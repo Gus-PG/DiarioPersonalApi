@@ -7,7 +7,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
     <TimeStampOfAssociatedLegacyPublishXmlFile />
     <EncryptedPassword>AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAA7fqX+tilAUivGswMkrnU1wAAAAACAAAAAAAQZgAAAAEAACAAAABBIa7r6bnGWcLNUHrKivFVOZemJCZ/JHeis3UYDAURwQAAAAAOgAAAAAIAACAAAAAQZ51JklGBSv76YqxMCIN34aE15w+jc9Ri/q6mGMnIoiAAAADjvlU0qaRKwPtfROnxMTnXyczU5wR6Y10ArrXP8knB+0AAAAB6JkZZxkuXi/3zD+DQeGfB5MXDhm0LCDUvoLwNdCmzalhEYtxjq9UIWkCwU0sxkpqtCuiJJ2kANbeoJedzMEiK</EncryptedPassword>
     <_PublishTargetUrl>ftp://win6046.site4now.net/diariopersonal_api</_PublishTargetUrl>
-    <History>True|2025-03-28T20:10:39.1873534Z;True|2025-03-19T21:04:23.1896695+01:00;False|2025-03-19T20:23:39.3626000+01:00;True|2025-03-18T00:02:01.2732579+01:00;True|2025-03-14T18:44:03.7757968+01:00;False|2025-03-14T18:31:21.9110068+01:00;True|2025-03-10T00:56:52.9176450+01:00;True|2025-03-09T23:02:46.9186228+01:00;True|2025-03-08T13:59:58.7605899+01:00;True|2025-03-07T01:04:25.3563661+01:00;True|2025-03-07T00:39:06.5653160+01:00;True|2025-03-06T23:32:54.8012059+01:00;True|2025-03-06T23:06:00.6858614+01:00;True|2025-03-06T20:28:06.2625786+01:00;True|2025-03-06T20:12:47.3520531+01:00;</History>
+    <History>True|2025-03-29T11:50:09.8805039Z;True|2025-03-28T21:10:39.1873534+01:00;True|2025-03-19T21:04:23.1896695+01:00;False|2025-03-19T20:23:39.3626000+01:00;True|2025-03-18T00:02:01.2732579+01:00;True|2025-03-14T18:44:03.7757968+01:00;False|2025-03-14T18:31:21.9110068+01:00;True|2025-03-10T00:56:52.9176450+01:00;True|2025-03-09T23:02:46.9186228+01:00;True|2025-03-08T13:59:58.7605899+01:00;True|2025-03-07T01:04:25.3563661+01:00;True|2025-03-07T00:39:06.5653160+01:00;True|2025-03-06T23:32:54.8012059+01:00;True|2025-03-06T23:06:00.6858614+01:00;True|2025-03-06T20:28:06.2625786+01:00;True|2025-03-06T20:12:47.3520531+01:00;</History>
     <LastFailureDetails />
   </PropertyGroup>
   <ItemGroup>
@@ -21,7 +21,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>03/19/2025 19:58:34</publishTime>
     </File>
     <File Include="appsettings.production.json">
-      <publishTime>03/28/2025 21:06:41</publishTime>
+      <publishTime>03/29/2025 12:46:12</publishTime>
     </File>
     <File Include="ar/Humanizer.resources.dll">
       <publishTime>01/29/2022 16:04:06</publishTime>
@@ -96,16 +96,16 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>11/08/2023 18:51:56</publishTime>
     </File>
     <File Include="DiarioPersonalApi.deps.json">
-      <publishTime>03/28/2025 21:06:40</publishTime>
+      <publishTime>03/29/2025 12:46:11</publishTime>
     </File>
     <File Include="DiarioPersonalApi.dll">
-      <publishTime>03/28/2025 21:06:37</publishTime>
+      <publishTime>03/29/2025 12:46:10</publishTime>
     </File>
     <File Include="DiarioPersonalApi.exe">
-      <publishTime>03/28/2025 21:06:37</publishTime>
+      <publishTime>03/29/2025 12:46:10</publishTime>
     </File>
     <File Include="DiarioPersonalApi.pdb">
-      <publishTime>03/28/2025 21:06:37</publishTime>
+      <publishTime>03/29/2025 12:46:10</publishTime>
     </File>
     <File Include="DiarioPersonalApi.runtimeconfig.json">
       <publishTime>03/17/2025 23:54:23</publishTime>
@@ -690,7 +690,7 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>01/29/2022 16:04:12</publishTime>
     </File>
     <File Include="web.config">
-      <publishTime>03/28/2025 21:06:41</publishTime>
+      <publishTime>03/29/2025 12:46:12</publishTime>
     </File>
     <File Include="zh-CN/Humanizer.resources.dll">
       <publishTime>01/29/2022 16:04:12</publishTime>

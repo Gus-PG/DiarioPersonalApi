@@ -29,8 +29,8 @@ namespace DiarioPersonalApi.Controllers
         }
 
         // Variables de identificación y autorización.
-        private int GetUserId() => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-        private string GetRole() => User.FindFirst(ClaimTypes.Role).Value;
+        private int GetUserId() => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+        private string GetRole() => User.FindFirst(ClaimTypes.Role)?.Value;
 
 
 
@@ -85,6 +85,7 @@ namespace DiarioPersonalApi.Controllers
             return Ok(ApiResponse<EntradaResponseDTO>.Ok(response, "Entrada encontrada"));
         }
 
+
         // 3) Obtiene preview de las entradas (usando paginación (20 por página)).
         [HttpGet("preview")]
         [Authorize]
@@ -94,6 +95,7 @@ namespace DiarioPersonalApi.Controllers
             var result = await _iRepo.GetPreviewEntradasPaginadoAsync(userId, page, pageSize);
             return Ok(ApiResponse<List<EntradaPreviewDTO>>.Ok(result));
         }
+
 
         // 4) Crear una entrada.
         [HttpPost]
@@ -123,22 +125,46 @@ namespace DiarioPersonalApi.Controllers
 
         // 5) Editar entrada
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<string>>> EditarEntrada(int id, EntradaRequestDTO request)
+        public async Task<ActionResult<ApiResponse<string>>> EditarEntrada(int id, [FromBody] EntradaRequestDTO request)
         {
+            if (string.IsNullOrWhiteSpace(request.Contenido))
+                return Ok(ApiResponse<string>.Fail("El contenido no puede estar vacío."));
+
+            if (request.Contenido.Length > 5000)
+                return Ok(ApiResponse<string>.Fail("El contenido supera el límite de 5000 caracteres."));
+
             var userId = GetUserId();
-            var role = GetRole();
+            var userRole = GetRole();
+
             var entrada = await _iRepo.GetByIdAsync(id);
-
             if (entrada == null)
-                return Ok(ApiResponse<string>.Fail("Entrada no encontrada"));
+                return NotFound(ApiResponse<string>.Fail("La entrada no existe."));
 
-            if (entrada.UsuarioId != userId && role != "Admin")
+            // Solo el autor o un admin pueden editar
+            if (entrada.UsuarioId != userId && userRole != "Admin")
                 return Forbid();
 
             entrada.Contenido = request.Contenido;
             entrada.Fecha = request.Fecha;
+
+            //// ACTUALIZACIÓN ETIQUETAS (opcional, si las gestionas también desde aquí)
+            //if (request.Etiquetas != null)
+            //{
+            //    // Elimina las actuales
+            //    _context.EntradasEtiquetas.RemoveRange(entrada.Etiquetas);
+
+            //    // Crea nuevas
+            //    entrada.Etiquetas = request.Etiquetas.Select(nombre => new EntradaEtiqueta
+            //    {
+            //        Etiqueta = new Etiqueta { Nombre = nombre }, // Asegúrate de no duplicar etiquetas aquí
+            //        EntradaId = entrada.Id
+            //    }).ToList();
+            //}
+
             _iRepo.Update(entrada);
             await _iRepo.SaveChangesAsync();
+
+            //await _iRepo.UpdateAsync(entrada);
 
             return Ok(ApiResponse<string>.Ok("Entrada actualizada correctamente"));
         }
@@ -177,6 +203,7 @@ namespace DiarioPersonalApi.Controllers
             return Ok(ApiResponse<object>.Ok(stats, "Estadísticas globales"));
         }
 
+
         // 8) Buscar por Hashtag
         [HttpGet("buscar")]
         public async Task<ActionResult<ApiResponse<IEnumerable<EntradaResponseDTO>>>> BuscarPorHashtag([FromQuery] string hashtag)
@@ -204,6 +231,7 @@ namespace DiarioPersonalApi.Controllers
 
             return Ok(ApiResponse<IEnumerable<EntradaResponseDTO>>.Ok(response, $"Entradas encontradas con #{hashtag}"));
         }
+
 
         // 9) Exportar entradas
         [HttpGet("export")]
