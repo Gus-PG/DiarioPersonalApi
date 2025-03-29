@@ -176,11 +176,12 @@ namespace DiarioPersonalApi.Controllers
         {
             var userId = GetUserId();
             var role = GetRole();
+
             var entrada = await _iRepo.GetByIdAsync(id);
-
             if (entrada == null)
-                return Ok(ApiResponse<string>.Fail("Entrada no encontrada"));
+                return NotFound(ApiResponse<string>.Fail("Entrada no encontrada"));
 
+            // Solo el autor o un admin pueden eliminar
             if (entrada.UsuarioId != userId && role != "Admin")
                 return Forbid();
 
