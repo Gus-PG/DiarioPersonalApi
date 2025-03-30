@@ -233,6 +233,41 @@ namespace DiarioPersonalApi.Controllers
             return Ok(ApiResponse<IEnumerable<EntradaResponseDTO>>.Ok(response, $"Entradas encontradas con #{hashtag}"));
         }
 
+        [HttpGet("etiquetas-usuario")]
+        public async Task<ActionResult<ApiResponse<List<string>>>> ObtenerEtiquetasUsuario()
+        {
+            var userId = GetUserId();
+
+            var etiquetas = await _iRepo.GetEtiquetasUsuarioAsync(userId);
+
+            return Ok(ApiResponse<List<string>>.Ok(etiquetas));
+        }
+
+        [HttpPost("buscar-avanzado")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<EntradaResponseDTO>>>> BuscarPorTextoYEtiquetas([FromBody] FiltroBusquedaDTO filtro)
+        {
+            var userId = GetUserId();
+            var role = GetRole();
+
+            if (string.IsNullOrWhiteSpace(filtro.Texto) && (filtro.Etiquetas == null || !filtro.Etiquetas.Any()))
+                return BadRequest(ApiResponse<IEnumerable<EntradaResponseDTO>>.Fail("Debe especificar al menos un texto o una etiqueta"));
+
+            var entradas = await _iRepo.SearchByTextoYOEtiquetasAsync(
+                    filtro.Texto,
+                    filtro.Etiquetas,
+                    role == "Admin" ? null : userId);
+
+            var resultado = entradas.Select(e => new EntradaResponseDTO
+            {
+                Id = e.Id,
+                Fecha = e.Fecha,
+                Contenido = e.Contenido,
+                Etiquetas = e.EntradasEtiquetas.Select(ee => ee.Etiqueta.Nombre).ToList()
+            });
+
+            return Ok(ApiResponse<IEnumerable<EntradaResponseDTO>>.Ok(resultado));
+        }
+
 
         // 9) Exportar entradas
         [HttpGet("export")]

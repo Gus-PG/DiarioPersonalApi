@@ -16,6 +16,42 @@ namespace DiarioPersonalApi.Data.Repositories
                 .ToListAsync();
         }
 
+        public async Task<List<string>> GetEtiquetasUsuarioAsync(int userId) 
+        {
+            return await _context.EntradasEtiquetas
+                .Where(ee => ee.Entrada.UsuarioId == userId)
+                .Select(ee => ee.Etiqueta.Nombre)
+                .Distinct()
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Entrada>> SearchByTextoYOEtiquetasAsync(string texto, List<string> etiquetas, int? userId = null)
+        {
+            var query = _dbSet
+                .Include(e => e.EntradasEtiquetas)
+                .ThenInclude(ee => ee.Etiqueta)               
+                .AsQueryable();
+
+            // Si se especifica un usuario, filtrar por él
+            if (userId.HasValue)
+            {
+                query = query.Where(e => e.UsuarioId == userId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(texto))
+            {
+                query = query.Where(e => e.Contenido.Contains(texto));
+            }
+
+            if (etiquetas != null && etiquetas.Any())
+            {
+                query = query.Where(e =>
+                    e.EntradasEtiquetas.Any(ee => etiquetas.Contains(ee.Etiqueta.Nombre)));
+            }
+
+            return await query.ToListAsync();
+        }
+
         public async Task<IEnumerable<Entrada>> SearchByHashtagAsync(int userId, string hashtag)
         {
             return await _dbSet
