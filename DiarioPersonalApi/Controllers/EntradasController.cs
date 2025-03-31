@@ -303,5 +303,35 @@ namespace DiarioPersonalApi.Controllers
         }
 
 
+        [HttpPost("exportar-filtrado")]
+        public async Task<IActionResult> ExportarFiltrado([FromBody] FiltroBusquedaDTO filtro)
+        {
+            var userId = GetUserId();
+            var role = GetRole();
+
+            if (string.IsNullOrWhiteSpace(filtro.Texto) && (filtro.Etiquetas == null || !filtro.Etiquetas.Any()))
+                return BadRequest(ApiResponse<string>.Fail("Debe especificar al menos un texto o una etiqueta."));
+
+            var entradas = await _iRepo.SearchByTextoYOEtiquetasAsync(
+                filtro.Texto,
+                filtro.Etiquetas,
+                role == "Admin" ? null : userId);
+
+            var textoPlano = new StringBuilder();
+            foreach (var entrada in entradas.OrderByDescending(e => e.Fecha))
+            {
+                textoPlano.AppendLine($"📅 {entrada.Fecha:dd/MM/yyyy}");
+                textoPlano.AppendLine(entrada.Contenido);
+                textoPlano.AppendLine("------------------------------------------------------------");
+            }
+
+            var fileName = $"EntradasExportadas_{DateTime.Now:yyyyMMddHHmmss}.txt";
+            var filePath = Path.Combine(Path.GetTempPath(), fileName);
+            await System.IO.File.WriteAllTextAsync(filePath, textoPlano.ToString());
+
+            var bytes = await System.IO.File.ReadAllBytesAsync(filePath);
+            return File(bytes, "text/plain", fileName);
+        }
+
     }
 }
