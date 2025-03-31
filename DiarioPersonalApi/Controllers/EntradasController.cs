@@ -250,7 +250,7 @@ namespace DiarioPersonalApi.Controllers
             var role = GetRole();
 
             if (string.IsNullOrWhiteSpace(filtro.Texto) && (filtro.Etiquetas == null || !filtro.Etiquetas.Any()))
-                return BadRequest(ApiResponse<IEnumerable<EntradaResponseDTO>>.Fail("Debe especificar al menos un texto o una etiqueta"));
+                return BadRequest(ApiResponse<IEnumerable<EntradaPreviewDTO>>.Fail("Debe especificar al menos un texto o una etiqueta"));
 
             var entradas = await _iRepo.SearchByTextoYOEtiquetasAsync(
                     filtro.Texto,
