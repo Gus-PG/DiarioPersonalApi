@@ -244,7 +244,7 @@ namespace DiarioPersonalApi.Controllers
         }
 
         [HttpPost("buscar-avanzado")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<EntradaResponseDTO>>>> BuscarPorTextoYEtiquetas([FromBody] FiltroBusquedaDTO filtro)
+        public async Task<ActionResult<ApiResponse<IEnumerable<EntradaPreviewDTO>>>> BuscarPorTextoYEtiquetas([FromBody] FiltroBusquedaDTO filtro)
         {
             var userId = GetUserId();
             var role = GetRole();
@@ -257,15 +257,15 @@ namespace DiarioPersonalApi.Controllers
                     filtro.Etiquetas,
                     role == "Admin" ? null : userId);
 
-            var resultado = entradas.Select(e => new EntradaResponseDTO
+            var resultado = entradas.Select(e => new EntradaPreviewDTO
             {
                 Id = e.Id,
                 Fecha = e.Fecha,
-                Contenido = e.Contenido,
+                Preview = e.Contenido.Length > 200 ? e.Contenido.Substring(0, 200) + "..." : e.Contenido,
                 Etiquetas = e.EntradasEtiquetas.Select(ee => ee.Etiqueta.Nombre).ToList()
             });
 
-            return Ok(ApiResponse<IEnumerable<EntradaResponseDTO>>.Ok(resultado));
+            return Ok(ApiResponse<IEnumerable<EntradaPreviewDTO>>.Ok(resultado));
         }
 
 
