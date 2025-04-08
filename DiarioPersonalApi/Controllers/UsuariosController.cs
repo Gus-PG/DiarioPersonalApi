@@ -101,36 +101,48 @@ namespace DiarioPersonalApi.Controllers
             {
                 return Ok(ApiResponse<LoginResponseDTO>.Fail("Debes confirmar tu correo antes de iniciar sesión."));
             }
-
-            // Generar token JWT.
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_config["Jwt:Key"]); 
-            var tokenDescriptor = new SecurityTokenDescriptor
+             try
             {
-                Subject = new ClaimsIdentity(new[]
+                // Generar token JWT.
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var keyString = _config["Jwt:Key"];
+                if (string.IsNullOrWhiteSpace(keyString))
+                    return StatusCode(500, "Configuración JWT no encontrada.");
+
+                var key = Encoding.ASCII.GetBytes(keyString);
+
+                var tokenDescriptor = new SecurityTokenDescriptor
                 {
+                    Subject = new ClaimsIdentity(new[]
+                    {
                     new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                     new Claim(ClaimTypes.Name, usuario.NombreUsuario),
-                    new Claim(ClaimTypes.Role, usuario.Role) 
+                    new Claim(ClaimTypes.Role, usuario.Role)
                 }),
-                Expires = DateTime.UtcNow.AddHours(1),
-                SigningCredentials = new SigningCredentials(
-                    new SymmetricSecurityKey(key), 
-                    SecurityAlgorithms.HmacSha256Signature)
-            };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
+                    Expires = DateTime.UtcNow.AddHours(1),
+                    SigningCredentials = new SigningCredentials(
+                        new SymmetricSecurityKey(key),
+                        SecurityAlgorithms.HmacSha256Signature)
+                };
+                var token = tokenHandler.CreateToken(tokenDescriptor);
+                var tokenString = tokenHandler.WriteToken(token);
 
-            // Encapsulamos datos necesarios.
-            var loginResponse = new LoginResponseDTO
+                // Encapsulamos datos necesarios.
+                var loginResponse = new LoginResponseDTO
+                {
+                    Token = tokenString,
+                    Rol = usuario.Role,
+                    NombreUsuario = usuario.NombreUsuario
+                };
+
+                // Devolver respuesta con token.
+                return Ok(ApiResponse<LoginResponseDTO>.Ok(loginResponse, "Login Exitoso"));
+            }
+            catch (Exception ex)
             {
-                Token = tokenString,
-                Rol = usuario.Role,
-                NombreUsuario = usuario.NombreUsuario
-            };
+                return StatusCode(500, $"Error generando el token: {ex.Message}");
+            }
 
-            // Devolver respuesta con token.
-            return Ok(ApiResponse<LoginResponseDTO>.Ok(loginResponse, "Login Exitoso"));
         }   
 
 
