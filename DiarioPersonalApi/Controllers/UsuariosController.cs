@@ -210,8 +210,5 @@ namespace DiarioPersonalApi.Controllers
 
             return Ok(ApiResponse<string>.Ok("Contraseña cambiada correctamente."));
         }
-
-
-
     }    
 }
