@@ -51,10 +51,12 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<DiarioDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IEntradaRepository, EntradaRepository>();
+builder.Services.AddTransient<IEmailService, EmailService>();
+builder.Services.AddTransient<IHashService, HashService>();
 
 // Si se solicita un IOptions<SmtpSettings>, lo mapeará con la sección "SmtpSettings" del appsettings.json.
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
-builder.Services.AddSingleton<EmailService>();
+
 
 // Configurar JWT
 var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]); // Cambia esto en producción

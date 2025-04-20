@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using NuGet.Common;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -19,13 +20,15 @@ namespace DiarioPersonalApi.Controllers
     {
         private readonly DiarioDbContext _db;
         private readonly IConfiguration _config;
-        private readonly EmailService _emailService;
+        private readonly IEmailService _iEmailService;
+        private readonly IHashService _hashService;
 
-        public UsuariosController(DiarioDbContext db, IConfiguration config, EmailService emailService)
+        public UsuariosController(DiarioDbContext db, IConfiguration config, IEmailService iEmailService, IHashService hashService)
         {
             _db = db;
             _config = config;
-            _emailService = emailService;
+            _iEmailService = iEmailService;
+            _hashService = hashService;
         }
 
         // POST: api/usuarios/register
@@ -41,7 +44,7 @@ namespace DiarioPersonalApi.Controllers
             {
                 Email = request.Email,
                 NombreUsuario = request.NombreUsuario, // Alias opcional.
-                ContraseñaHash = BCrypt.Net.BCrypt.HashPassword(request.Contraseña),
+                ContraseñaHash = _hashService.Hash(request.Contraseña), //BCrypt.Net.BCrypt.HashPassword(request.Contraseña),
                 Role = "User",
                 EmailConfirmed = false                
             };
@@ -59,7 +62,7 @@ namespace DiarioPersonalApi.Controllers
             var confirmLink = $"https://api.diario.peakappstudio.es/api/usuarios/ConfirmarEmail?token={token}";
 
             // 5 - Enviar correo
-            await _emailService.EnviarCorreoConfirmacion(usuario.Email, confirmLink);
+            await _iEmailService.EnviarCorreoConfirmacion(usuario.Email, confirmLink);
 
             // 6 - Devolver un mensaje
             return Ok(ApiResponse<string>.Ok("Usuario creado correctamente."));            
@@ -92,7 +95,7 @@ namespace DiarioPersonalApi.Controllers
         {
             // Buscamos usuario por mail.
             var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Email == request.Email);
-            if (usuario == null || !BCrypt.Net.BCrypt.Verify(request.Contraseña, usuario.ContraseñaHash))
+            if (usuario == null || !_hashService.Verify(request.Contraseña, usuario.ContraseñaHash))
                 return Unauthorized("Credenciales inválidas");
 
 
@@ -191,24 +194,49 @@ namespace DiarioPersonalApi.Controllers
         [HttpPost("forgot-password")]
         public async Task<ActionResult<ApiResponse<string>>> ForgotPassword(ForgotPasswordRequestDTO request)
         {
-            // Lógica para el Forgot Password (Verificaión y envío de contraseña (NO HASH) al mail del usuario) TODO:, NO IMPLEMENTADA**********************************************
+            var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Email == request.Email);
+
+            string? token = null;
+            if (usuario != null) {
+                // Generar token de recuperación y fecha de expiración
+                token = Guid.NewGuid().ToString();
+                usuario.ConfirmationToken = token;
+                usuario.ConfirmationTokenExpiry = DateTime.UtcNow.AddHours(24);
+            }
+
+            await _db.SaveChangesAsync();
+
+            var resetLink = $"https://carepoint.peakappstudio.es/password-helper?mode=reset&token={token}";
+            await _iEmailService.EnviarCorreoRecuperacion(usuario.Email, resetLink);
 
             return Ok(ApiResponse<string>.Ok("Correo de recuperación enviado correctamente."));
         }
 
 
-        [HttpPost("change-password")]
-        public async Task<ActionResult<ApiResponse<string>>> ChangePassword(ChangePasswordRequestDTO request)
+        [HttpPost("reset-password")]
+        public async Task<ActionResult<ApiResponse<string>>> ResetPassword(ResetPasswordRequestDTO request)
         {
             if (request.NewPassword != request.ConfirmPassword)
             {
                 return Ok(ApiResponse<string>.Fail("Las nuevas contraseñas no coinciden."));
             }
 
-            // Lógica de cambio de contraseña.   TODO:, NO IMPLEMENTADA**********************************************
+            var usuario = await _db.Usuarios
+                .FirstOrDefaultAsync(u => u.ConfirmationToken == request.Token &&
+                                          u.ConfirmationTokenExpiry > DateTime.UtcNow);
 
+            if (usuario == null)
+            {
+                return BadRequest(ApiResponse<string>.Fail("Token inválido o expirado."));
+            }
 
-            return Ok(ApiResponse<string>.Ok("Contraseña cambiada correctamente."));
+            usuario.ContraseñaHash = _hashService.Hash(request.NewPassword);
+            usuario.ConfirmationToken = null;
+            usuario.ConfirmationTokenExpiry = null;
+
+            await _db.SaveChangesAsync();
+
+            return Ok(ApiResponse<string>.Ok("Contraseña cambiada correctamente."));           
         }
     }    
 }
