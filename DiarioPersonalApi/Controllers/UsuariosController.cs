@@ -72,8 +72,7 @@ namespace DiarioPersonalApi.Controllers
             }
             catch (Exception ex)
             {
-                var inner = ex.InnerException?.Message ?? "";
-                return StatusCode(500, ApiResponse<string>.Fail("Error en registro: " + ex.Message + " >> " + inner));
+                return StatusCode(500, ApiResponse<string>.Fail("Ocurrió un error inesperado al registrar el usuario."));
             }
 
         }
