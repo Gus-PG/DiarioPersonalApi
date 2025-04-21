@@ -29,7 +29,8 @@ namespace DiarioPersonalApi.Services
             using var smtpClient = new SmtpClient(_smtpSettings.Server, _smtpSettings.Port)
             {
                 EnableSsl = _smtpSettings.EnableSsl, // 🔄 ahora configurable
-                Credentials = new NetworkCredential(_smtpSettings.User, _smtpSettings.Pass)
+                Credentials = new NetworkCredential(_smtpSettings.User, _smtpSettings.Pass),
+                UseDefaultCredentials = false
             };
 
             await smtpClient.SendMailAsync(mailMessage);
@@ -51,7 +52,8 @@ namespace DiarioPersonalApi.Services
             using var smtpClient = new SmtpClient(_smtpSettings.Server, _smtpSettings.Port)
             {
                 EnableSsl = _smtpSettings.EnableSsl, // ✅ Flexibilidad añadida
-                Credentials = new NetworkCredential(_smtpSettings.User, _smtpSettings.Pass)
+                Credentials = new NetworkCredential(_smtpSettings.User, _smtpSettings.Pass),
+                UseDefaultCredentials = false
             };
 
             await smtpClient.SendMailAsync(mailMessage);
