@@ -9,9 +9,9 @@ namespace DiarioPersonalApi.Services
     {
         private readonly SmtpSettings _smtpSettings;
 
-        public EmailService(IOptions<SmtpSettings> smtpSettings)
+        public EmailService(IOptions<SmtpSettings> smtpOptions)
         {
-            _smtpSettings = smtpSettings.Value;
+            _smtpSettings = smtpOptions.Value;
         }
 
         public async Task EnviarCorreoConfirmacion(string emailDestino, string confirmLink)
@@ -26,11 +26,10 @@ namespace DiarioPersonalApi.Services
 
             mailMessage.To.Add(emailDestino);
 
-            using var smtpClient = new SmtpClient(_smtpSettings.Server)
+            using var smtpClient = new SmtpClient(_smtpSettings.Server, _smtpSettings.Port)
             {
-                Port = _smtpSettings.Port,
-                Credentials = new NetworkCredential(_smtpSettings.User, _smtpSettings.Pass),
-                EnableSsl = true
+                EnableSsl = _smtpSettings.EnableSsl, // 🔄 ahora configurable
+                Credentials = new NetworkCredential(_smtpSettings.User, _smtpSettings.Pass)
             };
 
             await smtpClient.SendMailAsync(mailMessage);
@@ -49,11 +48,10 @@ namespace DiarioPersonalApi.Services
 
             mailMessage.To.Add(emailDestino);
 
-            using var smtpClient = new SmtpClient(_smtpSettings.Server)
+            using var smtpClient = new SmtpClient(_smtpSettings.Server, _smtpSettings.Port)
             {
-                Port = _smtpSettings.Port,
-                Credentials = new NetworkCredential(_smtpSettings.User, _smtpSettings.Pass),
-                EnableSsl = true
+                EnableSsl = _smtpSettings.EnableSsl, // ✅ Flexibilidad añadida
+                Credentials = new NetworkCredential(_smtpSettings.User, _smtpSettings.Pass)
             };
 
             await smtpClient.SendMailAsync(mailMessage);
