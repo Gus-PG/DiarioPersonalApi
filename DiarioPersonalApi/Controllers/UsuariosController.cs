@@ -35,37 +35,47 @@ namespace DiarioPersonalApi.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<ApiResponse<string>>> Register(RegisterRequestDTO request)
         {
-            // 1 - Validamos si existe el mail en la bbdd.
-            if (await _db.Usuarios.AnyAsync(u => u.Email == request.Email))
-                return BadRequest("Ya existe un usuario con ese email.");
-
-            // 2 - Creamos nuevo usuario con mail no confirmado.
-            var usuario = new Usuario
+            try
             {
-                Email = request.Email,
-                NombreUsuario = request.NombreUsuario, // Alias opcional.
-                ContraseñaHash = _hashService.Hash(request.Contraseña), //BCrypt.Net.BCrypt.HashPassword(request.Contraseña),
-                Role = "User",
-                EmailConfirmed = false                
-            };
+                // 1 - Validamos si existe el mail en la bbdd.
+                if (await _db.Usuarios.AnyAsync(u => u.Email == request.Email))
+                    return BadRequest("Ya existe un usuario con ese email.");
 
-            _db.Usuarios.Add(usuario);
-            await _db.SaveChangesAsync();
+                // 2 - Generamos token de confirmación.
+                var token = Guid.NewGuid().ToString();
 
-            // 3 - Generamos token de confirmación.
-            var token = Guid.NewGuid().ToString();
-            usuario.ConfirmationToken = token;
-            usuario.ConfirmationTokenExpiry = DateTime.UtcNow.AddHours(24);
-            await _db.SaveChangesAsync();
+                // 3 - Creamos nuevo usuario con mail no confirmado.
+                var usuario = new Usuario
+                {
+                    Email = request.Email,
+                    NombreUsuario = request.NombreUsuario, // Alias opcional.
+                    ContraseñaHash = _hashService.Hash(request.Contraseña), //BCrypt.Net.BCrypt.HashPassword(request.Contraseña),
+                    Role = "User",
+                    EmailConfirmed = false,
+                    ConfirmationToken = token,
+                    ConfirmationTokenExpiry = DateTime.UtcNow.AddHours(24)
+                };
 
-            // 4 - Construimos el enlace de confirmación.
-            var confirmLink = $"https://api.diario.peakappstudio.es/api/usuarios/ConfirmarEmail?token={token}";
+                _db.Usuarios.Add(usuario);
+                await _db.SaveChangesAsync();
 
-            // 5 - Enviar correo
-            await _iEmailService.EnviarCorreoConfirmacion(usuario.Email, confirmLink);
 
-            // 6 - Devolver un mensaje
-            return Ok(ApiResponse<string>.Ok("Usuario creado correctamente."));            
+                // 4 - Construimos el enlace de confirmación.
+                var confirmLink = $"https://api.diario.peakappstudio.es/api/usuarios/ConfirmarEmail?token={token}";
+
+                // 5 - Enviar correo
+                await _iEmailService.EnviarCorreoConfirmacion(usuario.Email, confirmLink);
+
+                // 6 - Devolver un mensaje
+                return Ok(ApiResponse<string>.Ok("Usuario creado correctamente."));
+
+            }
+            catch (Exception ex)
+            {
+                var inner = ex.InnerException?.Message ?? "";
+                return StatusCode(500, ApiResponse<string>.Fail("Error en registro: " + ex.Message + " >> " + inner));
+            }
+
         }
 
         [HttpGet("ConfirmarEmail")]
