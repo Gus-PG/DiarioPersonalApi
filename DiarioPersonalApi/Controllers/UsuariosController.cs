@@ -238,5 +238,27 @@ namespace DiarioPersonalApi.Controllers
 
             return Ok(ApiResponse<string>.Ok("Contraseña cambiada correctamente."));           
         }
+
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<string>>> ChangePassword([FromBody] ChangePasswordRequestDTO request)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+
+            var usuario = await _db.Usuarios.FindAsync(userId);
+            if (usuario == null)
+                return Unauthorized(ApiResponse<string>.Fail("usuario no encontrado."));
+
+            if (!_hashService.Verify(request.CurrentPassword, usuario.ContraseñaHash))
+                return Ok(ApiResponse<string>.Fail("La contraseña actual es incorrecta"));
+
+            if (request.NewPassword != request.ConfirmPassword)
+                return Ok(ApiResponse<string>.Fail("Nueva contraseña y su confirmación no coinciden"));
+
+            usuario.ContraseñaHash = _hashService.Hash(request.NewPassword);
+            await _db.SaveChangesAsync();
+
+            return Ok(ApiResponse<string>.Ok("Contraseña actualizada correctamente."));
+        }
     }    
 }
