@@ -3,3 +3,5 @@ obj/
 *.db
 appsettings.json
 .vs/
+/DiarioPersonalApi/Properties/PublishProfiles/FTPProfile.pubxml.user
+/IDEAS DESARROLLO.txt

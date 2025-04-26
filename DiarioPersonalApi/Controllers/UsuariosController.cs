@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using NuGet.Common;
+using NuGet.Protocol.Core.Types;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -80,22 +81,45 @@ namespace DiarioPersonalApi.Controllers
         [HttpGet("ConfirmarEmail")]
         public async Task<IActionResult> ConfirmarEmail([FromQuery] string token)
         {
-            var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.ConfirmationToken == token);
-            if (usuario == null) 
-                return BadRequest("Token inválido");
-            if (usuario.ConfirmationTokenExpiry < DateTime.UtcNow)
-                return BadRequest("Token caducado.");
-
-            usuario.EmailConfirmed = true;
-            usuario.ConfirmationToken = null;
-            usuario.ConfirmationTokenExpiry = null;
-            await _db.SaveChangesAsync();
-
-            return Ok(new
+            try
             {
-                Success = true,
-                Message = "Correo confirmado. Ya puedes iniciar sesión."
-            });                               
+                var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.ConfirmationToken == token);
+
+                if (usuario == null)
+                    return NotFound("Token inválido");
+
+                if (usuario.ConfirmationTokenExpiry < DateTime.UtcNow)
+                    return BadRequest("Token ha expirado.");
+
+                usuario.EmailConfirmed = true;
+                usuario.ConfirmationToken = Guid.Empty.ToString();
+                usuario.ConfirmationTokenExpiry = null;
+                
+                await _db.SaveChangesAsync();
+
+                // Pintamos el mensaje si es navegador.
+                // No se activa (else) si fuese móvil, Postman o bot.
+                var userAgent = Request.Headers["User-Agent"].ToString();
+
+                if (userAgent.Contains("Mozilla")) // navegador
+                {
+                    return Content("<h2 style='color:green;'>✔ Tu correo ha sido confirmado. Ya puedes iniciar sesión en la app.</h2>", "text/html");
+                }
+                else
+                {                               
+                    return Ok(new
+                    {
+                        Success = true,
+                        Message = "Correo confirmado. Ya puedes iniciar sesión."
+                    });
+                }
+
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(500, "❌ Error al confirmar el correo. Detalle: " + ex.Message);
+            }
+ 
         }
 
         // POST: /api/usuarios/login
