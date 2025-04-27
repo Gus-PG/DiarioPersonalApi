@@ -179,8 +179,33 @@ namespace DiarioPersonalApi.Controllers
                 return StatusCode(500, $"Error generando el token: {ex.Message}");
             }
 
-        }   
+        }
 
+
+        [HttpGet("perfil")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<UsuarioPerfilDTO>>> GetPerfilUsuario()
+        {
+            // Sacamos el email del token JWT
+            var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized(ApiResponse<UsuarioPerfilDTO>.Fail("No se pudo validar el usuario."));
+
+            var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (usuario == null)
+                return NotFound(ApiResponse<UsuarioPerfilDTO>.Fail("Usuario no encontrado."));
+
+            var perfil = new UsuarioPerfilDTO
+            {
+                Id = usuario.Id,
+                NombreUsuario = usuario.NombreUsuario,
+                Email = usuario.Email
+            };
+
+            return Ok(ApiResponse<UsuarioPerfilDTO>.Ok(perfil));
+        }
 
 
         // GET: api/usuarios/{userId}/stats
