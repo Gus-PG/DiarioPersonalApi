@@ -153,7 +153,8 @@ namespace DiarioPersonalApi.Controllers
                     {
                     new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
                     new Claim(ClaimTypes.Name, usuario.NombreUsuario),
-                    new Claim(ClaimTypes.Role, usuario.Role)
+                    new Claim(ClaimTypes.Role, usuario.Role),
+                    new Claim(ClaimTypes.Email, usuario.Email)
                 }),
                     Expires = DateTime.UtcNow.AddHours(1),
                     SigningCredentials = new SigningCredentials(
