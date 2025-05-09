@@ -79,7 +79,8 @@ namespace DiarioPersonalApi.Controllers
                 Id = entrada.Id,
                 Contenido = entrada.Contenido,
                 Fecha = entrada.Fecha,
-                Etiquetas = entrada.EntradasEtiquetas.Select(ee => ee.Etiqueta.Nombre).ToList()
+                UserId = entrada.UsuarioId,
+                Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new()
             };
 
             return Ok(ApiResponse<EntradaResponseDTO>.Ok(response, "Entrada encontrada"));
