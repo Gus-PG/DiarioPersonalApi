@@ -66,7 +66,7 @@ namespace DiarioPersonalApi.Controllers
         {
             var userId = GetUserId();
             var role = GetRole();
-            var entrada = await _iRepo.GetByIdAsync(id);
+            var entrada = await _iRepo.GetEntradaByIdWithUsuarioAsync(id);
 
             if (entrada == null)
                 return Ok(ApiResponse<EntradaResponseDTO>.Fail("Entrada no encontrada"));
@@ -77,9 +77,10 @@ namespace DiarioPersonalApi.Controllers
             var response = new EntradaResponseDTO
             {
                 Id = entrada.Id,
+                UserId = entrada.UsuarioId,
                 Contenido = entrada.Contenido,
                 Fecha = entrada.Fecha,
-                UserId = entrada.UsuarioId,
+                NombreUsuario = entrada.Usuario?.NombreUsuario ?? "",
                 Etiquetas = entrada.EntradasEtiquetas?.Select(ee => ee.Etiqueta.Nombre).ToList() ?? new()
             };
 

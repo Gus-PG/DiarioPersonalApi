@@ -16,6 +16,15 @@ namespace DiarioPersonalApi.Data.Repositories
                 .ToListAsync();
         }
 
+        public async Task<Entrada?> GetEntradaByIdWithUsuarioAsync(int id)
+        {
+            return await _dbSet
+                .Include(e => e.Usuario)  // 👈 Aquí traes la navegación
+                .Include(e => e.EntradasEtiquetas)
+                    .ThenInclude(ee => ee.Etiqueta)
+                .FirstOrDefaultAsync(e => e.Id == id);
+        }
+
         public async Task<List<string>> GetEtiquetasUsuarioAsync(int userId) 
         {
             return await _context.EntradasEtiquetas
