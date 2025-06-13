@@ -246,17 +246,20 @@ namespace DiarioPersonalApi.Controllers
         }
 
         [HttpPost("buscar-avanzado")]
-        public async Task<ActionResult<ApiResponse<IEnumerable<EntradaPreviewDTO>>>> BuscarPorTextoYEtiquetas([FromBody] FiltroBusquedaDTO filtro)
+        public async Task<ActionResult<ApiResponse<IEnumerable<EntradaPreviewDTO>>>> BuscarPorFiltro([FromBody] FiltroBusquedaDTO filtro)
         {
             var userId = GetUserId();
             var role = GetRole();
 
-            if (string.IsNullOrWhiteSpace(filtro.Texto) && (filtro.Etiquetas == null || !filtro.Etiquetas.Any()))
-                return BadRequest(ApiResponse<IEnumerable<EntradaPreviewDTO>>.Fail("Debe especificar al menos un texto o una etiqueta"));
+            // NOTA: Puedes permitir búsqueda vacía (mostrará todo)
+            // Si quieres forzar un criterio, descomenta la siguiente línea:
+            // if (string.IsNullOrWhiteSpace(filtro.Texto) && (filtro.Etiquetas == null || !filtro.Etiquetas.Any()))
+            //    return BadRequest(ApiResponse<IEnumerable<EntradaPreviewDTO>>.Fail("Debe especificar al menos un texto o una etiqueta"));
 
-            var entradas = await _iRepo.SearchByTextoYOEtiquetasAsync(
-                    filtro.Texto,
-                    filtro.Etiquetas,
+            // TODO: Si más adelante se permite a admin buscar TODO, dejar role == "Admin" ? null : userId
+
+            var entradas = await _iRepo.SearchByFiltroAsync(
+                    filtro,
                     role == "Admin" ? null : userId);
 
             var resultado = entradas.Select(e => new EntradaPreviewDTO

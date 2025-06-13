@@ -34,28 +34,49 @@ namespace DiarioPersonalApi.Data.Repositories
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Entrada>> SearchByTextoYOEtiquetasAsync(string texto, List<string> etiquetas, int? userId = null)
+        public async Task<IEnumerable<Entrada>> SearchByFiltroAsync(FiltroBusquedaDTO filtro, int? userId = null)
         {
             var query = _dbSet
                 .Include(e => e.EntradasEtiquetas)
                 .ThenInclude(ee => ee.Etiqueta)               
                 .AsQueryable();
 
-            // Si se especifica un usuario, filtrar por él
-            if (userId.HasValue)
-            {
+            // Filtrar por usuario si no es admin
+            if (userId.HasValue)            
                 query = query.Where(e => e.UsuarioId == userId.Value);
-            }
 
-            if (!string.IsNullOrWhiteSpace(texto))
-            {
-                query = query.Where(e => e.Contenido.Contains(texto));
-            }
 
-            if (etiquetas != null && etiquetas.Any())
+            // Filtrado por Fecha
+            if (filtro.FechaDesde.HasValue)
+                query = query.Where(e => e.Fecha >= filtro.FechaDesde.Value);
+
+            if (filtro.FechaHasta.HasValue)
+                query = query.Where(e => e.Fecha <= filtro.FechaHasta.Value);
+
+
+            // Filtrado por texto
+            if (!string.IsNullOrWhiteSpace(filtro.Texto))
+                query = query.Where(e => e.Contenido.Contains(filtro.Texto));
+
+
+            // Filtrado por etiquetas (AND/OR)
+            if (filtro.Etiquetas != null && filtro.Etiquetas.Any())
             {
-                query = query.Where(e =>
-                    e.EntradasEtiquetas.Any(ee => etiquetas.Contains(ee.Etiqueta.Nombre)));
+                if (filtro.EsBusquedaAnd)
+                {
+                    // Todas las etiquetas deben estar presentes (AND)
+                    foreach (var etiqueta in filtro.Etiquetas)
+                    {
+                        var temp = etiqueta;
+                        query = query.Where(e => e.EntradasEtiquetas.Any(ee => ee.Etiqueta.Nombre == temp));
+                    }
+                }
+                else
+                {
+                    // Al menos una etiqueta (OR)
+                    query = query.Where(e =>
+                        e.EntradasEtiquetas.Any(ee => filtro.Etiquetas.Contains(ee.Etiqueta.Nombre)));
+                }
             }
 
             return await query.ToListAsync();
