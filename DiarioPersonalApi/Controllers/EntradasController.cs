@@ -314,12 +314,11 @@ namespace DiarioPersonalApi.Controllers
             var userId = GetUserId();
             var role = GetRole();
 
-            if (string.IsNullOrWhiteSpace(filtro.Texto) && (filtro.Etiquetas == null || !filtro.Etiquetas.Any()))
-                return BadRequest(ApiResponse<string>.Fail("Debe especificar al menos un texto o una etiqueta."));
+            //if (string.IsNullOrWhiteSpace(filtro.Texto) && (filtro.Etiquetas == null || !filtro.Etiquetas.Any()))
+            //    return BadRequest(ApiResponse<string>.Fail("Debe especificar al menos un texto o una etiqueta."));
 
-            var entradas = await _iRepo.SearchByTextoYOEtiquetasAsync(
-                filtro.Texto,
-                filtro.Etiquetas,
+            var entradas = await _iRepo.SearchByFiltroAsync(
+                filtro,
                 role == "Admin" ? null : userId);
 
             var textoPlano = new StringBuilder();
