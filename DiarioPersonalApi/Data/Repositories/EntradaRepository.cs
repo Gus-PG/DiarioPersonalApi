@@ -61,7 +61,8 @@ namespace DiarioPersonalApi.Data.Repositories
 
             // Filtrado por etiquetas (AND/OR)
             if (filtro.Etiquetas != null && filtro.Etiquetas.Any())
-            {
+            {                
+
                 if (filtro.EsBusquedaAnd)
                 {
                     // Todas las etiquetas deben estar presentes (AND)
@@ -78,6 +79,17 @@ namespace DiarioPersonalApi.Data.Repositories
                         e.EntradasEtiquetas.Any(ee => filtro.Etiquetas.Contains(ee.Etiqueta.Nombre)));
                 }
             }
+
+
+            // Asignamos Paginación
+            if (filtro.Pagina < 1) filtro.Pagina = 1;
+            if (filtro.PageSize < 1) filtro.PageSize = 20;
+
+            query = query
+                .OrderByDescending(e => e.Fecha) // Ordena como prefieras
+                .Skip((filtro.Pagina - 1) * filtro.PageSize)
+                .Take(filtro.PageSize);
+
 
             return await query.ToListAsync();
         }
