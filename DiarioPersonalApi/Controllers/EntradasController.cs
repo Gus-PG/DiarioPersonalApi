@@ -13,6 +13,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using DiarioPersonalApi.Data.Repositories;
+using DiarioPersonalApi.Helpers;
 
 namespace DiarioPersonalApi.Controllers
 {
@@ -22,10 +23,12 @@ namespace DiarioPersonalApi.Controllers
     public class EntradasController : ControllerBase
     {
         private readonly IEntradaRepository _iRepo;
+        private readonly DiarioDbContext _context;
 
-        public EntradasController(IEntradaRepository iRepo)
+        public EntradasController(IEntradaRepository iRepo, DiarioDbContext context)
         {
             _iRepo = iRepo;
+            _context = context;
         }
 
         // Variables de identificación y autorización.
@@ -110,16 +113,47 @@ namespace DiarioPersonalApi.Controllers
                 return Ok(ApiResponse<string>.Fail("Entrada excede límite permitido de 5000 caracteres."));
 
             var userId = GetUserId();
+
+            // 1.- Crear Entrada
             var entrada = new Entrada 
             { 
                 Contenido = request.Contenido,
                 Fecha = request.Fecha,
                 UsuarioId = userId
-
             };
 
             await _iRepo.AddAsync(entrada);
-            await _iRepo.SaveChangesAsync();
+            await _iRepo.SaveChangesAsync(); // Necesario para obtener entrada.Id
+
+            // 2. Extraer etiquetas desde el texto
+            var etiquetasExtraidas = EtiquetaHelper.ExtraerEtiquetasDesdeTexto(request.Contenido);
+
+            // 3.- Insertar etiquetas y relaciones
+            foreach (var etiquetaNombre in etiquetasExtraidas)
+            {
+                // Buscar si ya existe la etiqueta.
+                var etiquetaExistente = await _context.Etiquetas
+                    .FirstOrDefaultAsync(e => e.Nombre == etiquetaNombre);
+
+                if (etiquetaExistente == null)
+                {
+                    etiquetaExistente = new Etiqueta { Nombre = etiquetaNombre };
+                    _context.Etiquetas.Add(etiquetaExistente);
+                    await _context.SaveChangesAsync();  // Obtener el Id.
+                }
+
+
+                // Insertar relación.
+                var relacion = new EntradaEtiqueta
+                {
+                    EntradaId = entrada.Id,
+                    EtiquetaId = etiquetaExistente.Id
+                };
+
+                _context.EntradasEtiquetas.Add(relacion);
+            }
+
+            await _context.SaveChangesAsync();
 
             return Ok(ApiResponse<string>.Ok("Entrada creada correctamente"));
         }
@@ -149,24 +183,38 @@ namespace DiarioPersonalApi.Controllers
             entrada.Contenido = request.Contenido;
             entrada.Fecha = request.Fecha;
 
-            //// ACTUALIZACIÓN ETIQUETAS (opcional, si las gestionas también desde aquí)
-            //if (request.Etiquetas != null)
-            //{
-            //    // Elimina las actuales
-            //    _context.EntradasEtiquetas.RemoveRange(entrada.Etiquetas);
+            // ✅ Extraer nuevas etiquetas del contenido
+            var nuevasEtiquetas = EtiquetaHelper.ExtraerEtiquetasDesdeTexto(request.Contenido);
 
-            //    // Crea nuevas
-            //    entrada.Etiquetas = request.Etiquetas.Select(nombre => new EntradaEtiqueta
-            //    {
-            //        Etiqueta = new Etiqueta { Nombre = nombre }, // Asegúrate de no duplicar etiquetas aquí
-            //        EntradaId = entrada.Id
-            //    }).ToList();
-            //}
+            // 🔁 1. Eliminar relaciones actuales de etiquetas
+            var relacionesActuales = _context.EntradasEtiquetas.Where(ee => ee.EntradaId == entrada.Id);
+            _context.EntradasEtiquetas.RemoveRange(relacionesActuales);
+            await _context.SaveChangesAsync();
+
+            // 🔁 2. Añadir nuevas relaciones
+            foreach (var nombre in nuevasEtiquetas)
+            {
+                var etiqueta = await _context.Etiquetas.FirstOrDefaultAsync(e => e.Nombre == nombre);
+                if (etiqueta == null)
+                {
+                    etiqueta = new Etiqueta { Nombre = nombre };
+                    _context.Etiquetas.Add(etiqueta);
+                    await _context.SaveChangesAsync();
+                }
+
+                var nuevaRelacion = new EntradaEtiqueta
+                {
+                    EntradaId = entrada.Id,
+                    EtiquetaId = etiqueta.Id
+                };
+
+                _context.EntradasEtiquetas.Add(nuevaRelacion);
+            }
+
+            await _context.SaveChangesAsync();
 
             _iRepo.Update(entrada);
             await _iRepo.SaveChangesAsync();
-
-            //await _iRepo.UpdateAsync(entrada);
 
             return Ok(ApiResponse<string>.Ok("Entrada actualizada correctamente"));
         }
@@ -187,8 +235,28 @@ namespace DiarioPersonalApi.Controllers
             if (entrada.UsuarioId != userId && role != "Admin")
                 return Forbid();
 
+            // 1️- Eliminar relaciones con etiquetas
+            var relaciones = _context.EntradasEtiquetas
+                .Where(ee => ee.EntradaId == entrada.Id);
+            _context.EntradasEtiquetas.RemoveRange(relaciones);
+
+            // 2️- Eliminar la entrada
             _iRepo.Delete(entrada);
-            await _iRepo.SaveChangesAsync();
+
+            // Guardar cambios.
+            await _context.SaveChangesAsync();  // Recomendada para relaciones complejas
+            await _iRepo.SaveChangesAsync();    // Útil para operac. genéricas.
+
+            // 3️- Eliminar etiquetas huérfanas (sin relaciones)
+            var etiquetasHuerfanas = await _context.Etiquetas
+                .Where(e => !_context.EntradasEtiquetas.Any(ee => ee.EtiquetaId == e.Id))
+                .ToListAsync();
+
+            if (etiquetasHuerfanas.Any())
+            {
+                _context.Etiquetas.RemoveRange(etiquetasHuerfanas);
+                await _context.SaveChangesAsync();
+            }
 
             return Ok(ApiResponse<string>.Ok("Entrada eliminada correctamente"));
         }
